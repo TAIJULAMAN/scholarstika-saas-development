@@ -73,9 +73,11 @@ export default function PricingPage() {
   const [states, setStates] = useState<any[]>([]);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("registeredUser");
+    const activeAuth = localStorage.getItem("scholarstika_user");
+    setIsRegisteredUser(!!activeAuth);
+
+    const savedUser = activeAuth || localStorage.getItem("registeredUser");
     if (savedUser) {
-      setIsRegisteredUser(true);
       try {
         const userData = JSON.parse(savedUser);
         setTotalBranches(parseInt(userData.branches) || 1);
@@ -197,8 +199,7 @@ export default function PricingPage() {
           if (isRegisteredUser) {
             setStep("BRANCHES");
           } else {
-            window.location.href =
-              "https://scholarstika-saas-development.vercel.app/auth/signup";
+            window.location.href = "/auth/signup";
           }
         }}
       >
