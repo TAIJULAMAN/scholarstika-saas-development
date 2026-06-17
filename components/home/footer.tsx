@@ -79,6 +79,14 @@ export function Footer() {
                   href=""
                   className="text-[#1B2149] transition-colors hover:text-white"
                 >
+                  Affiliate Program
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href=""
+                  className="text-[#1B2149] transition-colors hover:text-white"
+                >
                   School Admin Dashboard
                 </Link>
               </li>
@@ -184,6 +192,7 @@ export function Footer() {
                 >
                   Testimonials
                 </Link>
+
               </li>
             </ul>
           </div>

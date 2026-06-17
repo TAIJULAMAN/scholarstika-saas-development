@@ -88,6 +88,8 @@ export default function SignUpPage() {
         } else if (formData.ownerType === "multiple_institutions") {
           setSelectedRole("institution_manager");
         }
+      } else if (formData.ownerType === "affiliate_programmer") {
+        setSelectedRole("affiliate_programmer");
       }
 
       setError("");
@@ -223,7 +225,7 @@ export default function SignUpPage() {
                 <h2 className="text-xl font-bold text-gray-900 text-center">
                   How many schools do you manage?
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div
                     className={cn(
                       "relative flex flex-col items-center justify-center p-8 border-2 rounded-[2rem] cursor-pointer transition-all duration-300 group",
@@ -338,6 +340,62 @@ export default function SignUpPage() {
                       </p>
                     </div>
                   </div>
+                  
+                  <div
+                    className={cn(
+                      "relative flex flex-col items-center justify-center p-8 border-2 rounded-[2rem] cursor-pointer transition-all duration-300 group",
+                      formData.ownerType === "affiliate_programmer"
+                        ? "border-emerald-600 bg-emerald-50/50 shadow-lg shadow-emerald-600/5"
+                        : "border-gray-100 bg-white hover:border-emerald-200 hover:bg-emerald-50/20",
+                    )}
+                    onClick={() =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        ownerType: "affiliate_programmer",
+                        isOwner: "no",
+                        branches: "0",
+                      }))
+                    }
+                  >
+                    <div
+                      className={cn(
+                        "absolute top-4 right-4 h-6 w-6 rounded-full border-2 flex items-center justify-center transition-colors",
+                        formData.ownerType === "affiliate_programmer"
+                          ? "border-emerald-600 bg-emerald-600"
+                          : "border-gray-200",
+                      )}
+                    >
+                      {formData.ownerType === "affiliate_programmer" && (
+                        <Check className="h-4 w-4 text-white" />
+                      )}
+                    </div>
+
+                    <div
+                      className={cn(
+                        "p-4 rounded-2xl mb-4 transition-colors",
+                        formData.ownerType === "affiliate_programmer"
+                          ? "bg-emerald-100/50 text-emerald-600"
+                          : "bg-gray-50 text-gray-400 group-hover:text-emerald-500",
+                      )}
+                    >
+                      <UserCircle size={40} />
+                    </div>
+                    <div className="text-center group">
+                      <h3
+                        className={cn(
+                          "font-bold text-base transition-colors",
+                          formData.ownerType === "affiliate_programmer"
+                            ? "text-emerald-900"
+                            : "text-gray-900",
+                        )}
+                      >
+                        Affiliate Programmer
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Earn commissions by referring schools
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -419,27 +477,27 @@ export default function SignUpPage() {
                 </div>
               </div>
 
-              {/* School Name */}
+              {/* School/Company Name */}
               <div className="space-y-1.5">
                 <Label
                   htmlFor="schoolName"
                   className="text-gray-900 font-bold flex items-center gap-1"
                 >
-                  School Name <span className="text-red-500">*</span>
+                  {selectedRole === "affiliate_programmer" ? "Company/Brand Name (Optional)" : "School Name"} {selectedRole !== "affiliate_programmer" && <span className="text-red-500">*</span>}
                 </Label>
                 <p className="text-[10px] text-gray-500 font-medium">
-                  Main Campus/Branch/Headquarters
+                  {selectedRole === "affiliate_programmer" ? "Your marketing brand or company" : "Main Campus/Branch/Headquarters"}
                 </p>
                 <div className="relative">
-                  <School className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  {selectedRole === "affiliate_programmer" ? <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" /> : <School className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />}
                   <Input
                     id="schoolName"
                     type="text"
-                    placeholder="Baptist High School"
+                    placeholder={selectedRole === "affiliate_programmer" ? "e.g. EduTech Marketing" : "Baptist High School"}
                     className="pl-12 h-12 bg-gray-50/50 border-gray-200 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 transition-all font-medium text-sm"
                     value={formData.schoolName}
                     onChange={handleInputChange}
-                    required
+                    required={selectedRole !== "affiliate_programmer"}
                   />
                 </div>
               </div>
