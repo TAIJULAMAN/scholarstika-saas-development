@@ -1,0 +1,20 @@
+export const setToLocalStorage = (key: string, value: string): void => {
+    if (!key || typeof window === "undefined") {
+        return;
+    }
+    localStorage.setItem(key, value);
+};
+
+export const getFromLocalStorage = (key: string): string | null => {
+    if (!key || typeof window === "undefined") {
+        return null;
+    }
+    return localStorage.getItem(key);
+};
+
+export const getRemoveLocalStorage = (key: string): void => {
+    if (!key || typeof window === "undefined") {
+        return;
+    }
+    localStorage.removeItem(key);
+};

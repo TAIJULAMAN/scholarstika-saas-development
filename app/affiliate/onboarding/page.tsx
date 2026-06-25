@@ -12,8 +12,7 @@ export default function AffiliateOnboardingPage() {
 
     const handleConnectStripe = () => {
         setIsConnecting(true)
-        
-        // Simulate OAuth redirect and connection delay
+
         setTimeout(() => {
             setIsConnecting(false)
             setIsConnected(true)
@@ -32,7 +31,7 @@ export default function AffiliateOnboardingPage() {
                     <p className="text-gray-500 font-medium mb-8">
                         Your Stripe account is successfully linked. Your commissions will be automatically paid out to this account.
                     </p>
-                    
+
                     <div className="bg-gray-50 rounded-xl p-4 mb-8 flex items-center justify-between border border-gray-100">
                         <div className="flex items-center gap-3">
                             <div className="bg-white p-2 rounded-lg shadow-sm">
@@ -86,9 +85,9 @@ export default function AffiliateOnboardingPage() {
                             Scholarstika partners with Stripe for fast, secure, and automated commission payouts directly to your bank account.
                         </CardDescription>
                     </CardHeader>
-                    
+
                     <CardContent className="px-10 pb-12">
-                        <Button 
+                        <Button
                             onClick={handleConnectStripe}
                             disabled={isConnecting}
                             className="w-full h-16 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg shadow-xl shadow-emerald-600/25 transition-all hover:-translate-y-1 active:scale-95"
@@ -122,7 +121,7 @@ export default function AffiliateOnboardingPage() {
                             <p className="text-sm text-gray-500 font-medium">Earnings are automatically routed to your connected bank account.</p>
                         </div>
                     </div>
-                    
+
                     <div className="flex gap-4">
                         <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
                             <ShieldCheck className="w-6 h-6" />
