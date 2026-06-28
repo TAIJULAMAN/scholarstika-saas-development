@@ -37,6 +37,7 @@ export const baseApi = createApi({
     "newsletter",
     "review",
     "vehicles",
-    "faq"
+    "faq",
+    "mission"
   ],
 });
