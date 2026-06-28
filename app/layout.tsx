@@ -4,6 +4,7 @@ import { Roboto } from 'next/font/google'
 import './globals.css'
 import { ChatPopup } from '@/components/common/chat-popup';
 import { UserProvider } from '@/context/user-context';
+import ReduxProvider from '@/redux/ReduxProvider';
 
 const roboto = Roboto({
   weight: ['300', '400', '500', '700'],
@@ -43,12 +44,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${roboto.variable} font-sans antialiased`}>
-        <UserProvider>
-          {children}
-          <ChatPopup />
-          <Analytics />
-        </UserProvider>
+        <ReduxProvider>
+          <UserProvider>
+            {children}
+            <ChatPopup />
+            <Analytics />
+          </UserProvider>
+        </ReduxProvider>
       </body>
     </html>
   )
 }
+
