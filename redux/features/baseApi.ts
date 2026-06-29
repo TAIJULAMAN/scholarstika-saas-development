@@ -38,6 +38,8 @@ export const baseApi = createApi({
     "review",
     "vehicles",
     "faq",
-    "mission"
+    "mission",
+    "vision",
+    "team"
   ],
 });
