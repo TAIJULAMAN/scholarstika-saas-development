@@ -1,5 +1,23 @@
+"use client";
+
 import Image from "next/image";
+import { useGetVisionQuery } from "@/redux/features/vision/visionApi";
+
+const SkeletonParagraphs = () => (
+  <div className="space-y-4 animate-pulse">
+    <div className="h-6 bg-gray-200 rounded w-full" />
+    <div className="h-4 bg-gray-200 rounded w-full pt-2" />
+    <div className="h-4 bg-gray-200 rounded w-5/6" />
+    <div className="h-4 bg-gray-200 rounded w-11/12" />
+    <div className="h-4 bg-gray-200 rounded w-full pt-4" />
+    <div className="h-4 bg-gray-200 rounded w-4/5" />
+  </div>
+);
+
 export function VisionSection() {
+  const { data: visionResponse, isLoading } = useGetVisionQuery();
+  const dynamicVision = visionResponse?.data?.vision;
+
   return (
     <section className="bg-gradient-to-br from-gray-50 to-white py-16 md:py-20">
       <div className="container mx-auto px-5 lg:px-0">
@@ -43,17 +61,25 @@ export function VisionSection() {
                 A Connected Global Education Ecosystem
               </h3>
               <div className="space-y-4 text-gray-700">
-                <p className="leading-relaxed">
-                  Our vision is to build a future where schools of every size,
-                  especially growing and lower-income institutions, are
-                  empowered to embrace digital transformation through
-                  accessible, dependable, and modern school management
-                  technology. We envision an educational environment where
-                  school operations are more connected, communication is
-                  stronger, administration is more efficient, and institutions
-                  are better equipped to serve students, parents, and staff in a
-                  rapidly changing world.
-                </p>
+                {isLoading ? (
+                  <SkeletonParagraphs />
+                ) : dynamicVision ? (
+                  <p className="leading-relaxed whitespace-pre-wrap">
+                    {dynamicVision}
+                  </p>
+                ) : (
+                  <p className="leading-relaxed">
+                    Our vision is to build a future where schools of every size,
+                    especially growing and lower-income institutions, are
+                    empowered to embrace digital transformation through
+                    accessible, dependable, and modern school management
+                    technology. We envision an educational environment where
+                    school operations are more connected, communication is
+                    stronger, administration is more efficient, and institutions
+                    are better equipped to serve students, parents, and staff in a
+                    rapidly changing world.
+                  </p>
+                )}
               </div>
             </div>
           </div>

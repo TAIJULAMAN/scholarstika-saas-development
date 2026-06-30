@@ -4,9 +4,21 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus, MessageCircle, Mail } from "lucide-react"
 import Link from "next/link"
+import { useGetFaqsQuery } from "@/redux/features/faq/faqApi"
+
+const SkeletonCard = () => (
+    <Card className="overflow-hidden border-none bg-white shadow-md animate-pulse p-6">
+        <div className="flex justify-between items-center">
+            <div className="h-5 w-3/4 bg-emerald-100/70 rounded" />
+            <div className="h-8 w-8 rounded-full bg-emerald-100/70" />
+        </div>
+    </Card>
+)
 
 export function FaqSection() {
-    const leftColumnFaqs = [
+    const { data: faqResponse, isLoading } = useGetFaqsQuery();
+
+    const staticLeftColumnFaqs = [
         {
             question: "How do I make a new account on this platform or in Scholastika?",
             answer: "To create a new account, click on the 'Sign Up' button in the top right corner. Fill in your details including name, email, and password. You'll receive a verification email to activate your account. Once verified, you can log in and start using all features of Scholastika."
@@ -29,7 +41,7 @@ export function FaqSection() {
         },
     ]
 
-    const rightColumnFaqs = [
+    const staticRightColumnFaqs = [
         {
             question: "What features are included in the mobile app for students and parents?",
             answer: "Our mobile apps provide comprehensive access to all essential features including attendance tracking, grade viewing, homework assignments, class schedules, fee payment, real-time notifications, direct messaging with teachers, and access to digital learning resources. Both iOS and Android versions are available for download."
@@ -52,6 +64,17 @@ export function FaqSection() {
         },
     ]
 
+    const faqs = faqResponse?.data?.result || [];
+    const useStatic = faqs.length === 0;
+
+    const leftColumnFaqs = useStatic
+        ? staticLeftColumnFaqs
+        : faqs.slice(0, Math.ceil(faqs.length / 2));
+
+    const rightColumnFaqs = useStatic
+        ? staticRightColumnFaqs
+        : faqs.slice(Math.ceil(faqs.length / 2));
+
     return (
         <section id="faq" className="relative overflow-hidden bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 py-16 md:py-20">
             {/* Decorative Elements */}
@@ -71,43 +94,60 @@ export function FaqSection() {
 
                 {/* FAQ Accordion - Two Columns */}
                 <div className="mb-12 grid gap-6 lg:grid-cols-2 lg:gap-8">
-                    {/* Left Column */}
-                    <div className="space-y-4">
-                        {leftColumnFaqs.map((faq, idx) => (
-                            <Card key={idx} className="overflow-hidden border-none bg-white shadow-md transition-all hover:shadow-lg">
-                                <details className="group">
-                                    <summary className="flex cursor-pointer items-center justify-between p-6 font-medium text-gray-900 transition-all hover:bg-emerald-50/50">
-                                        <span className="pr-4 text-base font-semibold md:text-lg">{faq.question}</span>
-                                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 transition-all group-hover:bg-emerald-200 group-open:bg-emerald-600">
-                                            <Plus className="h-5 w-5 text-emerald-600 transition-all group-open:rotate-45 group-open:text-white" />
-                                        </div>
-                                    </summary>
-                                    <div className="border-t border-emerald-100 bg-gradient-to-br from-emerald-50/30 to-transparent px-6 pb-6 pt-4">
-                                        <p className="text-sm leading-relaxed text-gray-700 md:text-base">{faq.answer}</p>
-                                    </div>
-                                </details>
-                            </Card>
-                        ))}
-                    </div>
+                    {isLoading ? (
+                        <>
+                            <div className="space-y-4">
+                                <SkeletonCard />
+                                <SkeletonCard />
+                                <SkeletonCard />
+                            </div>
+                            <div className="space-y-4">
+                                <SkeletonCard />
+                                <SkeletonCard />
+                                <SkeletonCard />
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            {/* Left Column */}
+                            <div className="space-y-4">
+                                {leftColumnFaqs.map((faq, idx) => (
+                                    <Card key={idx} className="overflow-hidden border-none bg-white shadow-md transition-all hover:shadow-lg">
+                                        <details className="group">
+                                            <summary className="flex cursor-pointer items-center justify-between p-6 font-medium text-gray-900 transition-all hover:bg-emerald-50/50">
+                                                <span className="pr-4 text-base font-semibold md:text-lg">{faq.question}</span>
+                                                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 transition-all group-hover:bg-emerald-200 group-open:bg-emerald-600">
+                                                    <Plus className="h-5 w-5 text-emerald-600 transition-all group-open:rotate-45 group-open:text-white" />
+                                                </div>
+                                            </summary>
+                                            <div className="border-t border-emerald-100 bg-gradient-to-br from-emerald-50/30 to-transparent px-6 pb-6 pt-4">
+                                                <p className="text-sm leading-relaxed text-gray-700 md:text-base">{faq.answer}</p>
+                                            </div>
+                                        </details>
+                                    </Card>
+                                ))}
+                            </div>
 
-                    {/* Right Column */}
-                    <div className="space-y-4">
-                        {rightColumnFaqs.map((faq, idx) => (
-                            <Card key={idx} className="overflow-hidden border-none bg-white shadow-md transition-all hover:shadow-lg">
-                                <details className="group">
-                                    <summary className="flex cursor-pointer items-center justify-between p-6 font-medium text-gray-900 transition-all hover:bg-emerald-50/50">
-                                        <span className="pr-4 text-base font-semibold md:text-lg">{faq.question}</span>
-                                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 transition-all group-hover:bg-emerald-200 group-open:bg-emerald-600">
-                                            <Plus className="h-5 w-5 text-emerald-600 transition-all group-open:rotate-45 group-open:text-white" />
-                                        </div>
-                                    </summary>
-                                    <div className="border-t border-emerald-100 bg-gradient-to-br from-emerald-50/30 to-transparent px-6 pb-6 pt-4">
-                                        <p className="text-sm leading-relaxed text-gray-700 md:text-base">{faq.answer}</p>
-                                    </div>
-                                </details>
-                            </Card>
-                        ))}
-                    </div>
+                            {/* Right Column */}
+                            <div className="space-y-4">
+                                {rightColumnFaqs.map((faq, idx) => (
+                                    <Card key={idx} className="overflow-hidden border-none bg-white shadow-md transition-all hover:shadow-lg">
+                                        <details className="group">
+                                            <summary className="flex cursor-pointer items-center justify-between p-6 font-medium text-gray-900 transition-all hover:bg-emerald-50/50">
+                                                <span className="pr-4 text-base font-semibold md:text-lg">{faq.question}</span>
+                                                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 transition-all group-hover:bg-emerald-200 group-open:bg-emerald-600">
+                                                    <Plus className="h-5 w-5 text-emerald-600 transition-all group-open:rotate-45 group-open:text-white" />
+                                                </div>
+                                            </summary>
+                                            <div className="border-t border-emerald-100 bg-gradient-to-br from-emerald-50/30 to-transparent px-6 pb-6 pt-4">
+                                                <p className="text-sm leading-relaxed text-gray-700 md:text-base">{faq.answer}</p>
+                                            </div>
+                                        </details>
+                                    </Card>
+                                ))}
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* Contact CTA */}

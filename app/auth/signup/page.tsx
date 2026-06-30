@@ -1,5 +1,4 @@
 "use client";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useSignUpMutation } from "@/redux/features/auth/authApi";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -56,6 +56,7 @@ export default function SignUpPage() {
 
   const countries = Country.getAllCountries();
   const [states, setStates] = useState<any[]>([]);
+  const [signUp] = useSignUpMutation();
 
   useEffect(() => {
     if (formData.countryIso) {
@@ -118,6 +119,11 @@ export default function SignUpPage() {
       return;
     }
 
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
     const validatePassword = (pass: string) => {
       const hasUpper = /[A-Z]/.test(pass);
       const hasLower = /[a-z]/.test(pass);
@@ -146,28 +152,36 @@ export default function SignUpPage() {
 
     setLoading(true);
 
+    // Map frontend role to backend role
+    const roleMap: Record<string, string> = {
+      institution_manager: "ADMIN",
+      branch_manager: "BRANCH_MANAGER",
+    };
+
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      const userData = {
+      const payload = {
         name: formData.name,
         email: formData.email,
-        password: formData.password,
-        role: selectedRole,
         schoolName: formData.schoolName,
+        password: formData.password,
+        role: roleMap[selectedRole] || selectedRole.toUpperCase(),
         country: formData.country,
-        state: formData.state,
         city: formData.city,
-        branches: formData.branches || "1",
-        avatar: `https://avatar.iran.liara.run/public/${Math.floor(Math.random() * 50) + 1}`,
+        state: formData.state,
+        branches: Number(formData.branches) || 1,
       };
 
-      // Store in local storage
-      localStorage.setItem("registeredUser", JSON.stringify(userData));
+      const res = await signUp(payload).unwrap();
 
+      // On success, redirect to sign in
       router.push("/auth/signin");
-    } catch (err) {
-      setError("Failed to create account. Please try again.");
+    } catch (err: any) {
+      // Handle API error response
+      const errorMessage =
+        err?.data?.message ||
+        err?.data?.errorMessages?.[0]?.message ||
+        "Failed to create account. Please try again.";
+      setError(errorMessage);
       setLoading(false);
     }
   };
@@ -179,7 +193,6 @@ export default function SignUpPage() {
         <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-300 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-200 rounded-full blur-3xl" />
       </div>
-
       <div className="w-full max-w-2xl bg-white rounded-[2.5rem] shadow-xl shadow-emerald-900/5 p-8 md:p-12 relative z-10 border border-emerald-50">
         <div className="flex justify-between items-center mb-12">
           <div className="relative h-12 w-48">
@@ -194,7 +207,6 @@ export default function SignUpPage() {
             Step {step} of 2
           </div>
         </div>
-
         <CardHeader className="space-y-4 p-0 mb-8 text-center">
           <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">
             {step === 1
@@ -214,7 +226,6 @@ export default function SignUpPage() {
               {error}
             </div>
           )}
-
           {step === 1 ? (
             <div className="space-y-6">
               {/* Which type of owner you are? */}
@@ -251,7 +262,6 @@ export default function SignUpPage() {
                         <Check className="h-4 w-4 text-white" />
                       )}
                     </div>
-
                     <div
                       className={cn(
                         "p-4 rounded-2xl mb-4 transition-colors",
@@ -278,7 +288,6 @@ export default function SignUpPage() {
                       </p>
                     </div>
                   </div>
-
                   <div
                     className={cn(
                       "relative flex flex-col items-center justify-center p-8 border-2 rounded-[2rem] cursor-pointer transition-all duration-300 group",
@@ -310,7 +319,6 @@ export default function SignUpPage() {
                         <Check className="h-4 w-4 text-white" />
                       )}
                     </div>
-
                     <div
                       className={cn(
                         "p-4 rounded-2xl mb-4 transition-colors",
@@ -339,7 +347,6 @@ export default function SignUpPage() {
                   </div>
                 </div>
               </div>
-
               {/* How many branches of your school? */}
               {formData.ownerType === "multiple_institutions" && (
                 <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -357,7 +364,6 @@ export default function SignUpPage() {
                   />
                 </div>
               )}
-
               <Button
                 onClick={nextStep}
                 className="w-full bg-[#007b5e] hover:bg-[#006b52] h-14 rounded-2xl text-lg font-bold shadow-lg shadow-emerald-900/10 transition-all active:scale-[0.98]"

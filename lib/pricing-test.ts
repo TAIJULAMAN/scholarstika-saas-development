@@ -31,7 +31,9 @@ export function runPricingTests() {
     let passed = 0;
     
     testCases.forEach((tc, i) => {
-        const actual = calculateAnnualPrice(tc.country, tc.location as any, tc.students);
+        const countryCategory = getCountryCategory(tc.country);
+        const actualResult = calculateAnnualPrice(tc.students, countryCategory, tc.location as any);
+        const actual = actualResult.finalPrice;
         const emoji = actual === tc.expected ? "✅" : "❌";
         if (actual === tc.expected) passed++;
         
