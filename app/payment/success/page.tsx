@@ -21,6 +21,22 @@ export default function PaymentSuccessPage() {
     }
 
     if (countdown <= 0) {
+      let checkoutContext: { returnTo?: string } | null = null;
+
+      try {
+        const checkoutContextRaw = localStorage.getItem("scholarstika_checkout_context");
+        checkoutContext = checkoutContextRaw ? JSON.parse(checkoutContextRaw) : null;
+      } catch (error) {
+        console.error("Failed to parse checkout context", error);
+        localStorage.removeItem("scholarstika_checkout_context");
+      }
+
+      if (checkoutContext?.returnTo) {
+        localStorage.removeItem("scholarstika_checkout_context");
+        router.push(checkoutContext.returnTo);
+        return;
+      }
+
       const dashboardRoute =
         user.role === "institution_manager"
           ? "/institution/dashboard"

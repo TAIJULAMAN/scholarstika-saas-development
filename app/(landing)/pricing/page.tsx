@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,11 +51,13 @@ interface BranchInfo {
 
 export default function PricingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useUser();
   const [step, setStep] = useState<PricingStep>("INTRO");
   const [isRegisteredUser, setIsRegisteredUser] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+  const [formError, setFormError] = useState("");
   const [currentBranchIndex, setCurrentBranchIndex] = useState(1);
   const [totalBranches, setTotalBranches] = useState(1);
   const [branches, setBranches] = useState<BranchInfo[]>([]);
@@ -79,6 +81,8 @@ export default function PricingPage() {
   const countries = Country.getAllCountries();
   const [states, setStates] = useState<any[]>([]);
   const [createCheckoutSession] = useCreateCheckoutSessionMutation();
+  const isAddBranchFlow = searchParams.get("flow") === "add-branch";
+  const requestedBranches = Number(searchParams.get("branches")) || 0;
 
   useEffect(() => {
     const activeAuth = localStorage.getItem("scholarstika_user");
@@ -88,14 +92,30 @@ export default function PricingPage() {
     if (savedUser) {
       try {
         const userData = JSON.parse(savedUser);
-        setTotalBranches(parseInt(userData.branches) || 1);
-        setCalcBranchesCount(parseInt(userData.branches) || 1);
+        const branchCount = isAddBranchFlow
+          ? Math.max(requestedBranches, 1)
+          : parseInt(userData.branches) || 1;
 
-        // Pre-populate first branch with signup info
-        if (currentBranchIndex === 1 && !formData.name) {
+        setTotalBranches(branchCount);
+        setCalcBranchesCount(branchCount);
+
+        if (isAddBranchFlow && step === "INTRO") {
+          setIsRegisteredUser(true);
+          setStep("BRANCHES");
+        }
+
+        // Pre-populate branch flow with existing institution location.
+        if (
+          currentBranchIndex === 1 &&
+          !branches[0] &&
+          !formData.name &&
+          !formData.country &&
+          !formData.state &&
+          !formData.city
+        ) {
           setFormData((prev) => ({
             ...prev,
-            name: userData.schoolName || "",
+            name: isAddBranchFlow ? "" : userData.schoolName || "",
             country: userData.country || "",
             state: userData.state || "",
             city: userData.city || "",
@@ -105,7 +125,17 @@ export default function PricingPage() {
         console.error("Failed to parse user data", err);
       }
     }
-  }, [currentBranchIndex]);
+  }, [
+    branches,
+    currentBranchIndex,
+    formData.city,
+    formData.country,
+    formData.name,
+    formData.state,
+    isAddBranchFlow,
+    requestedBranches,
+    step,
+  ]);
 
   useEffect(() => {
     if (formData.country) {
@@ -120,7 +150,27 @@ export default function PricingPage() {
     }
   }, [formData.country]);
 
+  const validateBranch = (branch: BranchInfo) => {
+    if (!branch.name.trim()) return "School name is required.";
+    if (!branch.address.trim()) return "School address is required.";
+    if (!branch.country.trim()) return "Country is required.";
+    if (!branch.state.trim()) return "State/Region/Province is required.";
+    if (!branch.city.trim()) return "City/Town/Village is required.";
+    if (!branch.locationType) return "Urban or Rural selection is required.";
+    if (!branch.level.trim()) return "School type/level is required.";
+    if (!branch.studentPopulation.trim()) return "Student population is required.";
+    return null;
+  };
+
   const handleSaveBranch = () => {
+    const validationError = validateBranch(formData);
+
+    if (validationError) {
+      setFormError(validationError);
+      return;
+    }
+
+    setFormError("");
     const updatedBranches = [...branches];
     updatedBranches[currentBranchIndex - 1] = formData;
     setBranches(updatedBranches);
@@ -143,6 +193,20 @@ export default function PricingPage() {
   };
 
   const handleConfirmReview = () => {
+    const incompleteBranchIndex = branches.findIndex(
+      (branch) => validateBranch(branch) !== null,
+    );
+
+    if (incompleteBranchIndex !== -1) {
+      setFormError(`School ${incompleteBranchIndex + 1} is incomplete. Please review it before continuing.`);
+      setCurrentBranchIndex(incompleteBranchIndex + 1);
+      setFormData(branches[incompleteBranchIndex]);
+      setStep("BRANCHES");
+      return;
+    }
+
+    setFormError("");
+
     if (branches.length > 0) {
       const mainBranch = branches[0];
       setCalcLocationType(mainBranch.locationType);
@@ -201,6 +265,18 @@ export default function PricingPage() {
     setIsSubmitting(true);
 
     try {
+      if (isAddBranchFlow) {
+        localStorage.setItem(
+          "scholarstika_checkout_context",
+          JSON.stringify({
+            source: "branch-management",
+            returnTo: "/institution/branch-management",
+          }),
+        );
+      } else {
+        localStorage.removeItem("scholarstika_checkout_context");
+      }
+
       const payload = {
         price: totalAnnualPrice,
         subscriptiondetails: branches.map((branch) => ({
@@ -278,20 +354,26 @@ export default function PricingPage() {
           <School size={100} className="text-emerald-900" />
         </div>
         <h1 className="text-3xl md:text-4xl font-black text-emerald-900 mb-1">
-          Welcome back!
+          {isAddBranchFlow ? "Add a new branch" : "Welcome back!"}
         </h1>
         <p className="text-gray-500 font-medium text-base">
-          You're almost there. Let's add the details for your{" "}
-          <span className="text-emerald-600 font-bold">
-            {currentBranchIndex === 1
-              ? "first school"
-              : `school #${currentBranchIndex}`}
-          </span>
-          .
+          {isAddBranchFlow
+            ? "Complete the branch details below. Payment happens after review, pricing, and summary."
+            : "You're almost there. Let's add the details for your "}{" "}
+          {!isAddBranchFlow && (
+            <>
+              <span className="text-emerald-600 font-bold">
+                {currentBranchIndex === 1
+                  ? "first school"
+                  : `school #${currentBranchIndex}`}
+              </span>
+              .
+            </>
+          )}
         </p>
       </div>
 
-      <Card className="w-full max-w-2xl bg-white rounded-[2rem] shadow-2xl border-none relative overflow-visible mb-12">
+        <Card className="w-full max-w-2xl bg-white rounded-[2rem] shadow-2xl border-none relative overflow-visible mb-12">
         <div className="absolute -top-4 left-1/2 -translate-x-1/2">
           <div className="bg-white px-5 py-1.5 rounded-full shadow-md border border-gray-100 flex items-center gap-2">
             <span className="text-emerald-900 font-bold text-xs tracking-tight">
@@ -516,6 +598,11 @@ export default function PricingPage() {
           </div>
 
           <div className="pt-4 border-t border-gray-50 space-y-3">
+            {formError && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+                {formError}
+              </div>
+            )}
             <Button
               className="w-full h-14 bg-[#00604b] hover:bg-[#004d3c] rounded-xl text-lg font-bold shadow-lg shadow-emerald-900/10 transition-all flex items-center justify-center gap-2 group"
               onClick={handleSaveBranch}
@@ -553,7 +640,7 @@ export default function PricingPage() {
             </div>
             <span className="text-[9px] font-black bg-white/20 px-2 py-0.5 rounded-full uppercase tracking-[0.2em]">
               Verifying {branches.length}{" "}
-              {branches.length === 1 ? "School" : "Schools"}
+              {branches.length === 1 ? "Branch" : "Branches"}
             </span>
           </div>
           <CardContent className="pb-4 space-y-4">

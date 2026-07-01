@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Eye, Pencil, Trash2, Plus, DollarSign } from "lucide-react"
-import { AddBranchDialog } from "./add-branch-dialog"
 import { EditBranchDialog } from "./edit-branch-dialog"
 import { ViewBranchDialog } from "./view-branch-dialog"
 import { DeleteConfirmationDialog } from "./delete-confirmation-dialog"
@@ -10,7 +10,6 @@ import { PriceOverrideDialog } from "./price-override-dialog"
 import { TablePagination } from "@/components/common/table-pagination"
 import { InstitutionBranch } from "@/types/institution-branch"
 import {
-    useCreateInstitutionBranchMutation,
     useDeleteInstitutionBranchMutation,
     useGetInstitutionBranchesQuery,
     useOverrideInstitutionBranchPriceMutation,
@@ -23,14 +22,13 @@ interface BranchesTableProps {
 }
 
 export function BranchesTable({ branchId }: BranchesTableProps) {
-    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+    const router = useRouter()
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [isPriceOverrideOpen, setIsPriceOverrideOpen] = useState(false)
     const [selectedBranch, setSelectedBranch] = useState<InstitutionBranch | null>(null)
     const [currentPage, setCurrentPage] = useState(1)
-    const [createBranch] = useCreateInstitutionBranchMutation()
     const [updateBranch] = useUpdateInstitutionBranchMutation()
     const [deleteBranch] = useDeleteInstitutionBranchMutation()
     const [overridePrice] = useOverrideInstitutionBranchPriceMutation()
@@ -65,20 +63,6 @@ export function BranchesTable({ branchId }: BranchesTableProps) {
     const handlePriceOverride = (branch: InstitutionBranch) => {
         setSelectedBranch(branch)
         setIsPriceOverrideOpen(true)
-    }
-
-    const handleCreateBranch = async (data: {
-        name: string
-        type: string
-        location: string
-        contact: string
-    }) => {
-        try {
-            await createBranch(data).unwrap()
-            toast.success("Branch created successfully")
-        } catch (error: any) {
-            toast.error(error?.data?.message || "Failed to create branch")
-        }
     }
 
     const handleUpdateBranch = async (data: {
@@ -125,7 +109,7 @@ export function BranchesTable({ branchId }: BranchesTableProps) {
             <div className="mb-4 flex flex-wrap items-center justify-between gap-4 px-4 sm:px-6">
                 <h2 className="text-lg font-semibold text-gray-900">All Branches</h2>
                 <button
-                    onClick={() => setIsAddDialogOpen(true)}
+                    onClick={() => router.push("/pricing?flow=add-branch&branches=1&source=branch-management")}
                     style={{ backgroundColor: 'rgba(16, 185, 129, 0.8)' }}
                     className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white"
                 >
@@ -250,12 +234,6 @@ export function BranchesTable({ branchId }: BranchesTableProps) {
                 itemLabel="branches"
             />
 
-            {/* Dialogs */}
-            <AddBranchDialog
-                open={isAddDialogOpen}
-                onOpenChange={setIsAddDialogOpen}
-                onSubmit={handleCreateBranch}
-            />
             {selectedBranch && (
                 <>
                     <EditBranchDialog
