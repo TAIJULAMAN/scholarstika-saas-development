@@ -10,9 +10,16 @@ const subscriptionApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["auth"],
     }),
+    getMyPaymentStatus: builder.query({
+      query: () => ({
+        url: "subscription/my_payment_status",
+        method: "GET",
+      }),
+      providesTags: ["auth"],
+    }),
   }),
 });
 
-export const { useCreateCheckoutSessionMutation } = subscriptionApi;
+export const { useCreateCheckoutSessionMutation, useGetMyPaymentStatusQuery } = subscriptionApi;
 
 export default subscriptionApi;
