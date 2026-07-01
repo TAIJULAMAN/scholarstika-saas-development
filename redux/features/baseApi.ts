@@ -11,6 +11,7 @@ export const baseApi = createApi({
   reducerPath: "baseApi",
   baseQuery: fetchBaseQuery({
     baseUrl: getBaseUrl(),
+    credentials: "include",
     prepareHeaders: (headers, { getState }) => {
       const state = getState() as RootState;
       let token = state?.auth?.token;
@@ -21,10 +22,7 @@ export const baseApi = createApi({
 
       if (token) {
         const authValue = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
-        console.log("==> baseApi attaching header:", authValue);
         headers.set("Authorization", authValue);
-      } else {
-        console.log("==> baseApi WARNING: No token found in Redux or localStorage!");
       }
       return headers;
     },

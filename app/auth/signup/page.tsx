@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useUser } from "@/context/user-context";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { Country, State } from "country-state-city";
@@ -31,7 +30,6 @@ import { useSignUpMutation } from "@/redux/features/auth/authApi";
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { login } = useUser();
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -154,8 +152,8 @@ export default function SignUpPage() {
 
     // Map frontend role to backend role
     const roleMap: Record<string, string> = {
-      institution_manager: "ADMIN",
-      branch_manager: "BRANCH_MANAGER",
+      institution_manager: "INSTITUTIONAL_OWNER",
+      branch_manager: "ADMIN",
     };
 
     try {
@@ -171,7 +169,14 @@ export default function SignUpPage() {
         branches: Number(formData.branches) || 1,
       };
 
-      const res = await signUp(payload).unwrap();
+      await signUp(payload).unwrap();
+      localStorage.setItem(
+        "registeredUser",
+        JSON.stringify({
+          ...payload,
+          role: selectedRole,
+        }),
+      );
 
       // On success, redirect to sign in
       router.push("/auth/signin");
