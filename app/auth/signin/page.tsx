@@ -9,11 +9,17 @@ import { Mail, Lock, Eye, EyeOff } from "lucide-react"
 import { useState } from "react"
 import { useUser } from "@/context/user-context"
 import { useRouter } from "next/navigation"
+import { useLogInMutation } from "@/redux/features/auth/authApi"
+import { useAppDispatch } from "@/redux/hooks"
+import { setUser } from "@/redux/Slice/authSlice"
+import { normalizeFrontendUser } from "@/lib/auth-user"
 
 export default function SignInPage() {
     const [showPassword, setShowPassword] = useState(false)
     const { login } = useUser()
     const router = useRouter()
+    const dispatch = useAppDispatch()
+    const [logIn] = useLogInMutation()
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState("")
     const [formData, setFormData] = useState({
@@ -32,29 +38,30 @@ export default function SignInPage() {
         setIsLoading(true)
 
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000))
+            const response = await logIn({
+                email: formData.email,
+                password: formData.password,
+            }).unwrap()
 
-            const storedUserStr = localStorage.getItem("registeredUser")
-            if (!storedUserStr) {
-                setError("No user found. Please sign up first.")
-                setIsLoading(false)
-                return
-            }
+            const authData = response?.data
+            const user = normalizeFrontendUser(authData?.user || {})
 
-            const storedUser = JSON.parse(storedUserStr)
+            dispatch(setUser({
+                user,
+                token: authData?.accessToken,
+                refreshToken: authData?.refreshToken,
+            }))
 
-            if (storedUser.email === formData.email && storedUser.password === formData.password) {
-                login(storedUser)
-
-                // Redirect to trial offer page after sign in
-                router.push("/auth/trial-offer")
-            } else {
-                setError("Invalid email or password")
-                setIsLoading(false)
-            }
+            login(user)
+            localStorage.setItem("registeredUser", JSON.stringify(user))
+            router.push("/auth/trial-offer")
         } catch (err) {
-            setError("An error occurred. Please try again.")
+            const apiError = err as { data?: { message?: string; errorMessages?: Array<{ message?: string }> } }
+            setError(
+                apiError?.data?.message ||
+                apiError?.data?.errorMessages?.[0]?.message ||
+                "An error occurred. Please try again."
+            )
             setIsLoading(false)
         }
     }

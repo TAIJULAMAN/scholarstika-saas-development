@@ -3,10 +3,18 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react"
 
 export interface User {
+    id?: string
     name: string
     email: string
     role: string
+    backendRole?: string
     avatar?: string
+    schoolName?: string
+    country?: string
+    city?: string
+    state?: string
+    branches?: number
+    subscriptionId?: string
 }
 
 interface UserContextType {
@@ -50,6 +58,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const logout = () => {
         setUser(null)
         localStorage.removeItem("scholarstika_user")
+        localStorage.removeItem("token")
+        localStorage.removeItem("refreshToken")
+        localStorage.removeItem("user")
     }
 
     return (

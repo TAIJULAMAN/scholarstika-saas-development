@@ -29,7 +29,7 @@ function SetupBranchesForm() {
     const [branches, setBranches] = useState<Branch[]>([])
 
     useEffect(() => {
-        const savedUser = localStorage.getItem("registeredUser")
+        const savedUser = localStorage.getItem("scholarstika_user") || localStorage.getItem("registeredUser")
         let userData: any = null
         if (savedUser) {
             userData = JSON.parse(savedUser)

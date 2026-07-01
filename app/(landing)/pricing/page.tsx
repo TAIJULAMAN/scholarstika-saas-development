@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Country, State } from "country-state-city";
+import { useUser } from "@/context/user-context";
+import { useCreateCheckoutSessionMutation } from "@/redux/features/subscription/subscriptionApi";
 
 type PricingStep = "INTRO" | "BRANCHES" | "REVIEW" | "CALCULATOR" | "SUMMARY";
 
@@ -47,8 +50,12 @@ interface BranchInfo {
 }
 
 export default function PricingPage() {
+  const router = useRouter();
+  const { user } = useUser();
   const [step, setStep] = useState<PricingStep>("INTRO");
   const [isRegisteredUser, setIsRegisteredUser] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
   const [currentBranchIndex, setCurrentBranchIndex] = useState(1);
   const [totalBranches, setTotalBranches] = useState(1);
   const [branches, setBranches] = useState<BranchInfo[]>([]);
@@ -71,6 +78,7 @@ export default function PricingPage() {
 
   const countries = Country.getAllCountries();
   const [states, setStates] = useState<any[]>([]);
+  const [createCheckoutSession] = useCreateCheckoutSessionMutation();
 
   useEffect(() => {
     const activeAuth = localStorage.getItem("scholarstika_user");
@@ -177,6 +185,57 @@ export default function PricingPage() {
       return sum + branchPrice;
     }, 0);
   }, [branches, finalPrice]);
+
+  const handleProceedToPayment = async () => {
+    if (!user) {
+      router.push("/auth/signin");
+      return;
+    }
+
+    if (branches.length === 0) {
+      setPaymentError("Please complete at least one school branch before continuing.");
+      return;
+    }
+
+    setPaymentError("");
+    setIsSubmitting(true);
+
+    try {
+      const payload = {
+        price: totalAnnualPrice,
+        subscriptiondetails: branches.map((branch) => ({
+          subscriptionType: "paid",
+          schoolName: branch.name,
+          country: branch.country,
+          state: branch.state,
+          city: branch.city,
+          area: branch.locationType === "URBAN" ? "Urban" : "Rural",
+          schoolType: branch.level,
+          studentLimit: branch.studentPopulation,
+        })),
+      };
+
+      const result = await createCheckoutSession(payload).unwrap();
+      const checkoutUrl = result?.data?.checkoutUrl || result?.checkoutUrl;
+
+      if (!checkoutUrl) {
+        throw new Error("Stripe checkout URL was not returned");
+      }
+
+      window.location.href = checkoutUrl;
+    } catch (error) {
+      const apiError = error as {
+        data?: { message?: string; errorMessages?: Array<{ message?: string }> };
+      };
+
+      setPaymentError(
+        apiError?.data?.message ||
+          apiError?.data?.errorMessages?.[0]?.message ||
+          "Payment setup failed. Please try again."
+      );
+      setIsSubmitting(false);
+    }
+  };
 
   const renderIntro = () => (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-5 text-center mt-10">
@@ -725,8 +784,17 @@ export default function PricingPage() {
           </div>
 
           <div className="space-y-4">
-            <Button className="w-full h-16 bg-emerald-600 hover:bg-emerald-700 text-white text-xl font-black rounded-xl shadow-[0_10px_40px_-10px_rgba(5,150,105,0.5)] transition-all flex items-center justify-center gap-3 group">
-              Proceed to Payment
+            {paymentError && (
+              <div className="rounded-lg border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-200">
+                {paymentError}
+              </div>
+            )}
+            <Button
+              className="w-full h-16 bg-emerald-600 hover:bg-emerald-700 text-white text-xl font-black rounded-xl shadow-[0_10px_40px_-10px_rgba(5,150,105,0.5)] transition-all flex items-center justify-center gap-3 group"
+              onClick={handleProceedToPayment}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Processing..." : "Proceed to Payment"}
               <ArrowRight className="transition-transform group-hover:translate-x-1" />
             </Button>
             <div className="flex items-center justify-center gap-2 text-white/30">
