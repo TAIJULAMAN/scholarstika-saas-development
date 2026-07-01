@@ -6,21 +6,30 @@ import { X } from "lucide-react"
 interface AddBranchDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
+    onSubmit: (data: {
+        name: string
+        type: string
+        location: string
+        contact: string
+    }) => Promise<void>
 }
 
-export function AddBranchDialog({ open, onOpenChange }: AddBranchDialogProps) {
+export function AddBranchDialog({ open, onOpenChange, onSubmit }: AddBranchDialogProps) {
     const [formData, setFormData] = useState({
         name: "",
         type: "",
         location: "",
         contact: "",
     })
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        // console.log("Creating branch:", formData)
+        setIsSubmitting(true)
+        await onSubmit(formData)
         onOpenChange(false)
         setFormData({ name: "", type: "", location: "", contact: "" })
+        setIsSubmitting(false)
     }
 
     if (!open) return null
@@ -108,9 +117,10 @@ export function AddBranchDialog({ open, onOpenChange }: AddBranchDialogProps) {
                         </button>
                         <button
                             type="submit"
+                            disabled={isSubmitting}
                             className="flex-1 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
                         >
-                            Add Branch
+                            {isSubmitting ? "Adding..." : "Add Branch"}
                         </button>
                     </div>
                 </form>

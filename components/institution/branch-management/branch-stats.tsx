@@ -1,40 +1,56 @@
 "use client"
 
 import { Users, GraduationCap, TrendingUp, DollarSign } from "lucide-react"
+import { useGetInstitutionBranchStatsQuery } from "@/redux/features/branchManagement/branchManagementApi"
 
 interface BranchStatsProps {
     branchId: string
 }
 
-const getBranchStats = (branchId: string) => {
-    if (branchId === "all") {
-        return [
-            { icon: Users, label: "Total Students", value: "12,847", change: "+8%", color: "text-green-600", bgColor: "bg-green-50" },
-            { icon: GraduationCap, label: "Total Teachers", value: "560", change: "+5%", color: "text-green-600", bgColor: "bg-green-50" },
-            { icon: TrendingUp, label: "Avg Attendance", value: "92.3%", change: "+3%", color: "text-green-600", bgColor: "bg-green-50" },
-            { icon: DollarSign, label: "Total Earning", value: "$2.4M", change: "+12%", color: "text-green-600", bgColor: "bg-green-50" },
-        ]
-    }
-    return [
-        { icon: Users, label: "Students", value: "3,124", change: "+12%", color: "text-green-600", bgColor: "bg-green-50" },
-        { icon: GraduationCap, label: "Teachers", value: "187", change: "+8%", color: "text-green-600", bgColor: "bg-green-50" },
-        { icon: TrendingUp, label: "Attendance", value: "88.5%", change: "-2%", color: "text-green-600", bgColor: "bg-green-50", negative: true },
-        { icon: DollarSign, label: "Earning", value: "$385K", change: "+15%", color: "text-green-600", bgColor: "bg-green-50" },
-    ]
-}
-
-const branchOptions = [
-    { value: "all", label: "All Branches" },
-    { value: "1", label: "Downtown Campus" },
-    { value: "2", label: "Westside Branch" },
-    { value: "3", label: "Northgate Academy" },
-    { value: "4", label: "Riverside School" },
-    { value: "5", label: "Eastside Institute" },
-    { value: "6", label: "Southpark Academy" },
-]
-
 export function BranchStats({ branchId }: BranchStatsProps) {
-    const stats = getBranchStats(branchId)
+    const { data: statsResponse, isLoading } = useGetInstitutionBranchStatsQuery(branchId)
+    const statsData = statsResponse?.data || statsResponse
+    const formatCurrency = (value: number) =>
+        new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "USD",
+            maximumFractionDigits: 0,
+        }).format(value)
+
+    const stats = [
+        {
+            icon: Users,
+            label: branchId === "all" ? "Total Students" : "Students",
+            value: isLoading ? "..." : new Intl.NumberFormat("en-US").format(statsData?.totalStudents || 0),
+            change: statsData?.studentChange || "+0%",
+            color: "text-green-600",
+            bgColor: "bg-green-50",
+        },
+        {
+            icon: GraduationCap,
+            label: branchId === "all" ? "Total Teachers" : "Teachers",
+            value: isLoading ? "..." : new Intl.NumberFormat("en-US").format(statsData?.totalTeachers || 0),
+            change: statsData?.teacherChange || "+0%",
+            color: "text-green-600",
+            bgColor: "bg-green-50",
+        },
+        {
+            icon: TrendingUp,
+            label: branchId === "all" ? "Avg Attendance" : "Attendance",
+            value: isLoading ? "..." : `${statsData?.averageAttendance || 0}%`,
+            change: statsData?.attendanceChange || "+0%",
+            color: "text-green-600",
+            bgColor: "bg-green-50",
+        },
+        {
+            icon: DollarSign,
+            label: branchId === "all" ? "Total Earning" : "Earning",
+            value: isLoading ? "..." : formatCurrency(statsData?.totalEarnings || 0),
+            change: statsData?.earningsChange || "+0%",
+            color: "text-green-600",
+            bgColor: "bg-green-50",
+        },
+    ]
 
     return (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">

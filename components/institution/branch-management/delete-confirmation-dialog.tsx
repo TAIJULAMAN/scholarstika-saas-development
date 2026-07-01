@@ -1,18 +1,23 @@
 "use client"
 
+import { useState } from "react"
 import { AlertTriangle, X } from "lucide-react"
 
 interface DeleteConfirmationDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     branchName: string
+    onConfirm: () => Promise<void>
 }
 
-export function DeleteConfirmationDialog({ open, onOpenChange, branchName }: DeleteConfirmationDialogProps) {
-    const handleDelete = () => {
-        // In real app, this would call an API to delete the branch
-        console.log("Deleting branch:", branchName)
+export function DeleteConfirmationDialog({ open, onOpenChange, branchName, onConfirm }: DeleteConfirmationDialogProps) {
+    const [isDeleting, setIsDeleting] = useState(false)
+
+    const handleDelete = async () => {
+        setIsDeleting(true)
+        await onConfirm()
         onOpenChange(false)
+        setIsDeleting(false)
     }
 
     if (!open) return null
@@ -53,9 +58,10 @@ export function DeleteConfirmationDialog({ open, onOpenChange, branchName }: Del
                     </button>
                     <button
                         onClick={handleDelete}
+                        disabled={isDeleting}
                         className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
                     >
-                        Delete Branch
+                        {isDeleting ? "Deleting..." : "Delete Branch"}
                     </button>
                 </div>
             </div>

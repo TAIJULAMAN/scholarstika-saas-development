@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Branch } from "@/data/branches"
+import { InstitutionBranch } from "@/types/institution-branch"
 import { logPricingOverride } from "@/lib/audit-logger"
 import { useUser } from "@/context/user-context"
 import { AlertCircle, History } from "lucide-react"
@@ -21,13 +21,19 @@ import { AlertCircle, History } from "lucide-react"
 interface PriceOverrideDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    branch: Branch
+    branch: InstitutionBranch
+    onSubmit: (data: {
+        id: string
+        annualPriceUsd: number
+        overrideReason: string
+    }) => Promise<void>
 }
 
 export function PriceOverrideDialog({
     open,
     onOpenChange,
-    branch
+    branch,
+    onSubmit
 }: PriceOverrideDialogProps) {
     const { user } = useUser()
     const [newPrice, setNewPrice] = useState(branch.annualPriceUsd?.toString() || "0")
@@ -38,8 +44,11 @@ export function PriceOverrideDialog({
         if (!reason) return
         
         setLoading(true)
-        // Simulate API/storage update
-        await new Promise(resolve => setTimeout(resolve, 800))
+        await onSubmit({
+            id: branch.id,
+            annualPriceUsd: Number(newPrice),
+            overrideReason: reason,
+        })
         
         logPricingOverride(
             { id: user?.email || "unknown", name: user?.name || "Admin" },

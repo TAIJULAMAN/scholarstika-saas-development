@@ -8,41 +8,116 @@ import { ViewBranchDialog } from "./view-branch-dialog"
 import { DeleteConfirmationDialog } from "./delete-confirmation-dialog"
 import { PriceOverrideDialog } from "./price-override-dialog"
 import { TablePagination } from "@/components/common/table-pagination"
-import { branches, type Branch } from "@/data/branches"
+import { InstitutionBranch } from "@/types/institution-branch"
+import {
+    useCreateInstitutionBranchMutation,
+    useDeleteInstitutionBranchMutation,
+    useGetInstitutionBranchesQuery,
+    useOverrideInstitutionBranchPriceMutation,
+    useUpdateInstitutionBranchMutation,
+} from "@/redux/features/branchManagement/branchManagementApi"
+import { toast } from "sonner"
 
-export function BranchesTable() {
+interface BranchesTableProps {
+    branchId: string
+}
+
+export function BranchesTable({ branchId }: BranchesTableProps) {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [isPriceOverrideOpen, setIsPriceOverrideOpen] = useState(false)
-    const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null)
+    const [selectedBranch, setSelectedBranch] = useState<InstitutionBranch | null>(null)
     const [currentPage, setCurrentPage] = useState(1)
+    const [createBranch] = useCreateInstitutionBranchMutation()
+    const [updateBranch] = useUpdateInstitutionBranchMutation()
+    const [deleteBranch] = useDeleteInstitutionBranchMutation()
+    const [overridePrice] = useOverrideInstitutionBranchPriceMutation()
 
     const itemsPerPage = 8
-    const totalPages = Math.ceil(branches.length / itemsPerPage)
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = startIndex + itemsPerPage
-    const currentBranches = branches.slice(startIndex, endIndex)
+    const { data: branchesResponse, isLoading } = useGetInstitutionBranchesQuery({
+        branchId,
+        page: currentPage,
+        limit: itemsPerPage,
+    })
+    const branchesPayload = branchesResponse?.data || branchesResponse
+    const currentBranches = branchesPayload?.data || []
+    const meta = branchesPayload?.meta
+    const totalPages = Math.max(meta?.totalPage || 1, 1)
+    const totalItems = meta?.total || 0
 
-    const handleView = (branch: Branch) => {
+    const handleView = (branch: InstitutionBranch) => {
         setSelectedBranch(branch)
         setIsViewDialogOpen(true)
     }
 
-    const handleEdit = (branch: Branch) => {
+    const handleEdit = (branch: InstitutionBranch) => {
         setSelectedBranch(branch)
         setIsEditDialogOpen(true)
     }
 
-    const handleDelete = (branch: Branch) => {
+    const handleDelete = (branch: InstitutionBranch) => {
         setSelectedBranch(branch)
         setIsDeleteDialogOpen(true)
     }
 
-    const handlePriceOverride = (branch: Branch) => {
+    const handlePriceOverride = (branch: InstitutionBranch) => {
         setSelectedBranch(branch)
         setIsPriceOverrideOpen(true)
+    }
+
+    const handleCreateBranch = async (data: {
+        name: string
+        type: string
+        location: string
+        contact: string
+    }) => {
+        try {
+            await createBranch(data).unwrap()
+            toast.success("Branch created successfully")
+        } catch (error: any) {
+            toast.error(error?.data?.message || "Failed to create branch")
+        }
+    }
+
+    const handleUpdateBranch = async (data: {
+        id: string
+        name: string
+        type: string
+        location: string
+        contact: string
+    }) => {
+        try {
+            await updateBranch(data).unwrap()
+            toast.success("Branch updated successfully")
+        } catch (error: any) {
+            toast.error(error?.data?.message || "Failed to update branch")
+        }
+    }
+
+    const handleDeleteBranch = async () => {
+        if (!selectedBranch) return
+
+        try {
+            await deleteBranch(selectedBranch.id).unwrap()
+            toast.success("Branch deleted successfully")
+        } catch (error: any) {
+            toast.error(error?.data?.message || "Failed to delete branch")
+        }
+    }
+
+    const handleOverridePrice = async (data: {
+        id: string
+        annualPriceUsd: number
+        overrideReason: string
+    }) => {
+        try {
+            await overridePrice(data).unwrap()
+            toast.success("Branch pricing updated successfully")
+        } catch (error: any) {
+            toast.error(error?.data?.message || "Failed to update branch pricing")
+        }
     }
 
     return (
@@ -74,6 +149,20 @@ export function BranchesTable() {
                         </tr>
                     </thead>
                     <tbody>
+                        {isLoading && (
+                            <tr>
+                                <td colSpan={8} className="px-6 py-10 text-center text-sm text-gray-500">
+                                    Loading branches...
+                                </td>
+                            </tr>
+                        )}
+                        {!isLoading && currentBranches.length === 0 && (
+                            <tr>
+                                <td colSpan={8} className="px-6 py-10 text-center text-sm text-gray-500">
+                                    No branches found yet.
+                                </td>
+                            </tr>
+                        )}
                         {currentBranches.map((branch) => (
                             <tr key={branch.id} className="border-b border-gray-100 transition-colors hover:bg-gray-50">
                                 <td className="whitespace-nowrap py-6 pl-6">
@@ -81,23 +170,29 @@ export function BranchesTable() {
                                 </td>
                                 <td className="whitespace-nowrap py-6 text-sm text-gray-600">{branch.type}</td>
                                 <td className="whitespace-nowrap py-6">
-                                    <span className="font-semibold text-gray-900">{branch.students}</span>
+                                    <span className="font-semibold text-gray-900">{new Intl.NumberFormat("en-US").format(branch.students)}</span>
                                 </td>
                                 <td className="whitespace-nowrap py-6">
-                                    <span className="text-gray-600">{branch.teachers}</span>
+                                    <span className="text-gray-600">{new Intl.NumberFormat("en-US").format(branch.teachers)}</span>
                                 </td>
                                 <td className="whitespace-nowrap py-6">
-                                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${parseFloat(branch.attendance) >= 93
+                                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${branch.attendance >= 93
                                         ? 'bg-green-100 text-green-700'
-                                        : parseFloat(branch.attendance) >= 90
+                                        : branch.attendance >= 90
                                             ? 'bg-yellow-100 text-yellow-700'
                                             : 'bg-red-100 text-red-700'
                                         }`}>
-                                        {branch.attendance}
+                                        {branch.attendance}%
                                     </span>
                                 </td>
                                 <td className="whitespace-nowrap py-6">
-                                    <span className="font-semibold text-gray-900">{branch.earnings}</span>
+                                    <span className="font-semibold text-gray-900">
+                                        {new Intl.NumberFormat("en-US", {
+                                            style: "currency",
+                                            currency: "USD",
+                                            maximumFractionDigits: 0,
+                                        }).format(branch.earnings)}
+                                    </span>
                                 </td>
                                 <td className="whitespace-nowrap py-6">
                                     <div className="flex flex-col">
@@ -149,20 +244,25 @@ export function BranchesTable() {
             <TablePagination
                 currentPage={currentPage}
                 totalPages={totalPages}
-                totalItems={branches.length}
+                totalItems={totalItems}
                 itemsPerPage={itemsPerPage}
                 onPageChange={setCurrentPage}
                 itemLabel="branches"
             />
 
             {/* Dialogs */}
-            <AddBranchDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} />
+            <AddBranchDialog
+                open={isAddDialogOpen}
+                onOpenChange={setIsAddDialogOpen}
+                onSubmit={handleCreateBranch}
+            />
             {selectedBranch && (
                 <>
                     <EditBranchDialog
                         open={isEditDialogOpen}
                         onOpenChange={setIsEditDialogOpen}
                         branch={selectedBranch}
+                        onSubmit={handleUpdateBranch}
                     />
                     <ViewBranchDialog
                         open={isViewDialogOpen}
@@ -173,11 +273,13 @@ export function BranchesTable() {
                         open={isDeleteDialogOpen}
                         onOpenChange={setIsDeleteDialogOpen}
                         branchName={selectedBranch.name}
+                        onConfirm={handleDeleteBranch}
                     />
                     <PriceOverrideDialog
                         open={isPriceOverrideOpen}
                         onOpenChange={setIsPriceOverrideOpen}
                         branch={selectedBranch}
+                        onSubmit={handleOverridePrice}
                     />
                 </>
             )}

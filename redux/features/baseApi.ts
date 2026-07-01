@@ -38,6 +38,7 @@ export const baseApi = createApi({
     "faq",
     "mission",
     "vision",
-    "team"
+    "team",
+    "branchManagement"
   ],
 });
