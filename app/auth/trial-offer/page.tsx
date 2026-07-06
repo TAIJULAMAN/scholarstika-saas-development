@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import { useUser } from "@/context/user-context"
 import { useState, useEffect } from "react"
 import { useGetMyPaymentStatusQuery } from "@/redux/features/subscription/subscriptionApi"
+import { getDashboardRouteForRole } from "@/lib/auth-user"
 
 export default function TrialOfferPage() {
     const router = useRouter()
@@ -22,8 +23,18 @@ export default function TrialOfferPage() {
     const isPaid = Boolean(paymentStatus?.isPaid)
 
     useEffect(() => {
-        if (user?.role === "branch_admin" || user?.role === "branch_manager") {
-            router.replace("/branch/dashboard")
+        const instantAccessRoles = new Set([
+            "branch_admin",
+            "branch_manager",
+            "student",
+            "teacher",
+            "parent",
+            "bursar",
+            "nurse",
+        ])
+
+        if (user?.role && instantAccessRoles.has(user.role)) {
+            router.replace(getDashboardRouteForRole(user.role))
             return
         }
 
@@ -31,14 +42,7 @@ export default function TrialOfferPage() {
             return
         }
 
-        const targetRoute =
-            user.role === "institution_manager"
-                ? "/institution/dashboard"
-                : user.role === "branch_manager" || user.role === "branch_admin"
-                    ? "/branch/dashboard"
-                    : "/"
-
-        router.replace(targetRoute)
+        router.replace(getDashboardRouteForRole(user.role))
     }, [isPaid, isPaymentStatusLoading, router, user])
 
     const handleClaimTrial = async () => {

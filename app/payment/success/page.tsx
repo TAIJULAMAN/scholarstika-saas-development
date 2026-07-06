@@ -7,6 +7,7 @@ import { CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUser } from "@/context/user-context";
+import { getDashboardRouteForRole } from "@/lib/auth-user";
 
 export default function PaymentSuccessPage() {
   const router = useRouter();
@@ -37,14 +38,7 @@ export default function PaymentSuccessPage() {
         return;
       }
 
-      const dashboardRoute =
-        user.role === "institution_manager"
-          ? "/institution/dashboard"
-          : user.role === "branch_manager" || user.role === "branch_admin"
-            ? "/branch/dashboard"
-            : "/";
-
-      router.push(dashboardRoute);
+      router.push(getDashboardRouteForRole(user.role));
       return;
     }
 

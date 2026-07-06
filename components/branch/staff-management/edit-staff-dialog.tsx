@@ -1,48 +1,60 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-interface StaffMember {
-    id: number
-    name: string
-    email: string
-    phone: string
-    role: string
-    grade?: string
-    subject?: string
-    studentName?: string
-    joinedDate: string
-    status: string
-    password?: string
-}
+import type { BranchStaff } from "@/types/branch-user"
 
 interface EditStaffDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    member: StaffMember
+    member: BranchStaff
+    isLoading?: boolean
+    onSubmit: (id: string, payload: {
+        name: string
+        email: string
+        phoneNumber: string
+    }) => Promise<string | null>
 }
 
-export function EditStaffDialog({ open, onOpenChange, member }: EditStaffDialogProps) {
+export function EditStaffDialog({
+    open,
+    onOpenChange,
+    member,
+    isLoading = false,
+    onSubmit,
+}: EditStaffDialogProps) {
     const [formData, setFormData] = useState({
         name: member.name,
         email: member.email,
-        phone: member.phone,
-        role: member.role,
-        grade: member.grade || "",
-        subject: member.subject || "",
-        studentName: member.studentName || "",
-        joinedDate: member.joinedDate,
-        password: member.password || "",
+        phoneNumber: member.phoneNumber,
     })
+    const [error, setError] = useState("")
 
-    const handleSubmit = (e: React.FormEvent) => {
+    useEffect(() => {
+        if (open) {
+            setFormData({
+                name: member.name,
+                email: member.email,
+                phoneNumber: member.phoneNumber,
+            })
+            setError("")
+        }
+    }, [open, member])
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        console.log("Updating staff member:", formData)
+        setError("")
+
+        const result = await onSubmit(member.id, formData)
+
+        if (result) {
+            setError(result)
+            return
+        }
+
         onOpenChange(false)
     }
 
@@ -53,8 +65,13 @@ export function EditStaffDialog({ open, onOpenChange, member }: EditStaffDialogP
                     <DialogTitle>Edit Staff Member</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    {error && (
+                        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                            {error}
+                        </div>
+                    )}
+
                     <div className="grid gap-4 md:grid-cols-2">
-                        {/* Full Name */}
                         <div className="space-y-2">
                             <Label htmlFor="name">Full Name *</Label>
                             <Input
@@ -66,7 +83,6 @@ export function EditStaffDialog({ open, onOpenChange, member }: EditStaffDialogP
                             />
                         </div>
 
-                        {/* Email */}
                         <div className="space-y-2">
                             <Label htmlFor="email">Email Address *</Label>
                             <Input
@@ -79,123 +95,42 @@ export function EditStaffDialog({ open, onOpenChange, member }: EditStaffDialogP
                             />
                         </div>
 
-                        {/* Phone */}
                         <div className="space-y-2">
                             <Label htmlFor="phone">Phone Number *</Label>
                             <Input
                                 id="phone"
                                 type="tel"
-                                value={formData.phone}
-                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                value={formData.phoneNumber}
+                                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                                 placeholder="+1 (555) 123-4567"
                                 required
                             />
                         </div>
 
-                        {/* Role */}
                         <div className="space-y-2">
-                            <Label htmlFor="role">Role *</Label>
-                            <Select
-                                value={formData.role}
-                                onValueChange={(value) => setFormData({ ...formData, role: value })}
-                                required
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select role" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Student">Student</SelectItem>
-                                    <SelectItem value="Teacher">Teacher</SelectItem>
-                                    <SelectItem value="Parent">Parent</SelectItem>
-                                    <SelectItem value="Bursar">Bursar</SelectItem>
-                                    <SelectItem value="Nurse">Nurse</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <Label>Role</Label>
+                            <Input value={member.role.toUpperCase()} disabled />
                         </div>
 
-                        {/* Conditional fields based on role */}
-                        {formData.role === "Student" && (
-                            <div className="space-y-2">
-                                <Label htmlFor="grade">Grade/Section *</Label>
-                                <Select
-                                    value={formData.grade}
-                                    onValueChange={(value) => setFormData({ ...formData, grade: value })}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select grade" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Grade 8-A">Grade 8-A</SelectItem>
-                                        <SelectItem value="Grade 8-B">Grade 8-B</SelectItem>
-                                        <SelectItem value="Grade 9-A">Grade 9-A</SelectItem>
-                                        <SelectItem value="Grade 9-B">Grade 9-B</SelectItem>
-                                        <SelectItem value="Grade 10-A">Grade 10-A</SelectItem>
-                                        <SelectItem value="Grade 10-B">Grade 10-B</SelectItem>
-                                        <SelectItem value="Grade 11-A">Grade 11-A</SelectItem>
-                                        <SelectItem value="Grade 11-B">Grade 11-B</SelectItem>
-                                        <SelectItem value="Grade 12-A">Grade 12-A</SelectItem>
-                                        <SelectItem value="Grade 12-B">Grade 12-B</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
-
-                        {formData.role === "Teacher" && (
-                            <div className="space-y-2">
-                                <Label htmlFor="subject">Subject *</Label>
-                                <Input
-                                    id="subject"
-                                    value={formData.subject}
-                                    onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                                    placeholder="Subject taught"
-                                />
-                            </div>
-                        )}
-
-                        {formData.role === "Parent" && (
-                            <div className="space-y-2">
-                                <Label htmlFor="studentName">Student Name *</Label>
-                                <Input
-                                    id="studentName"
-                                    value={formData.studentName}
-                                    onChange={(e) => setFormData({ ...formData, studentName: e.target.value })}
-                                    placeholder="Child's name"
-                                />
-                            </div>
-                        )}
-
-                        {/* Password */}
                         <div className="space-y-2">
-                            <Label htmlFor="password">Login Password *</Label>
-                            <Input
-                                id="password"
-                                type="text"
-                                value={formData.password}
-                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                placeholder="Enter temporary password"
-                                required
-                            />
+                            <Label>Login ID</Label>
+                            <Input value={member.generateId} disabled />
                         </div>
 
-                        {/* Joined Date */}
-                        <div className="space-y-2">
-                            <Label htmlFor="joinedDate">Joining Date *</Label>
-                            <Input
-                                id="joinedDate"
-                                type="date"
-                                value={formData.joinedDate}
-                                onChange={(e) => setFormData({ ...formData, joinedDate: e.target.value })}
-                                required
-                            />
-                        </div>
+                        {member.studentId && (
+                            <div className="space-y-2">
+                                <Label>Linked Student ID</Label>
+                                <Input value={member.studentId} disabled />
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4">
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                             Cancel
                         </Button>
-                        <Button type="submit" style={{ backgroundColor: 'rgba(16, 185, 129, 0.8)' }} className="text-white">
-                            Save Changes
+                        <Button type="submit" disabled={isLoading} style={{ backgroundColor: "rgba(16, 185, 129, 0.8)" }} className="text-white">
+                            {isLoading ? "Saving..." : "Save Changes"}
                         </Button>
                     </div>
                 </form>

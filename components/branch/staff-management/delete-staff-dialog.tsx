@@ -9,12 +9,20 @@ interface DeleteStaffDialogProps {
     onOpenChange: (open: boolean) => void
     memberName: string
     memberRole: string
+    onConfirm: () => Promise<void> | void
+    isLoading?: boolean
 }
 
-export function DeleteStaffDialog({ open, onOpenChange, memberName, memberRole }: DeleteStaffDialogProps) {
+export function DeleteStaffDialog({
+    open,
+    onOpenChange,
+    memberName,
+    memberRole,
+    onConfirm,
+    isLoading = false,
+}: DeleteStaffDialogProps) {
     const handleDelete = () => {
-        console.log("Deleting staff member:", memberName)
-        onOpenChange(false)
+        void onConfirm()
     }
 
     return (
@@ -47,9 +55,10 @@ export function DeleteStaffDialog({ open, onOpenChange, memberName, memberRole }
                         </Button>
                         <Button
                             onClick={handleDelete}
+                            disabled={isLoading}
                             className="bg-red-600 hover:bg-red-700 text-white"
                         >
-                            Delete {memberRole}
+                            {isLoading ? "Deleting..." : `Delete ${memberRole}`}
                         </Button>
                     </div>
                 </div>

@@ -3,6 +3,9 @@
 import { useState } from "react"
 import { X } from "lucide-react"
 
+const branchOptions = ["Main Campus", "North Branch", "South Branch"]
+const gradeOptions = ["Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"]
+
 interface EditStudentDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
@@ -84,11 +87,14 @@ export function EditStudentDialog({ open, onOpenChange, student }: EditStudentDi
                             required
                             value={formData.branch}
                             onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 appearance-auto"
                         >
-                            <option value="Main Campus">Main Campus</option>
-                            <option value="North Branch">North Branch</option>
-                            <option value="South Branch">South Branch</option>
+                            <option value="">Select branch</option>
+                            {branchOptions.map((branch) => (
+                                <option key={branch} value={branch}>
+                                    {branch}
+                                </option>
+                            ))}
                         </select>
                     </div>
 
@@ -100,13 +106,14 @@ export function EditStudentDialog({ open, onOpenChange, student }: EditStudentDi
                             required
                             value={formData.grade}
                             onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
-                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 appearance-auto"
                         >
-                            <option value="Grade 8">Grade 8</option>
-                            <option value="Grade 9">Grade 9</option>
-                            <option value="Grade 10">Grade 10</option>
-                            <option value="Grade 11">Grade 11</option>
-                            <option value="Grade 12">Grade 12</option>
+                            <option value="">Select grade</option>
+                            {gradeOptions.map((grade) => (
+                                <option key={grade} value={grade}>
+                                    {grade}
+                                </option>
+                            ))}
                         </select>
                     </div>
 

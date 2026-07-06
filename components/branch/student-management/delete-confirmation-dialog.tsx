@@ -6,13 +6,19 @@ interface DeleteConfirmationDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     studentName: string
+    onConfirm: () => Promise<void> | void
+    isLoading?: boolean
 }
 
-export function DeleteConfirmationDialog({ open, onOpenChange, studentName }: DeleteConfirmationDialogProps) {
+export function DeleteConfirmationDialog({
+    open,
+    onOpenChange,
+    studentName,
+    onConfirm,
+    isLoading = false,
+}: DeleteConfirmationDialogProps) {
     const handleDelete = () => {
-        // In real app, this would call an API to delete the student
-        console.log("Deleting student:", studentName)
-        onOpenChange(false)
+        void onConfirm()
     }
 
     if (!open) return null
@@ -53,9 +59,10 @@ export function DeleteConfirmationDialog({ open, onOpenChange, studentName }: De
                     <button
                         type="button"
                         onClick={handleDelete}
+                        disabled={isLoading}
                         className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
                     >
-                        Delete
+                        {isLoading ? "Deleting..." : "Delete"}
                     </button>
                 </div>
             </div>

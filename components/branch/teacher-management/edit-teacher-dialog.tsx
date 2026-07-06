@@ -1,40 +1,106 @@
 "use client"
 
-import { useState } from "react"
-import { X } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useEffect, useState } from "react"
+import { Check, ChevronDown, X } from "lucide-react"
+import type { BranchTeacher } from "@/types/branch-user"
 
 interface EditTeacherDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    teacher: {
-        id: number
-        name: string
+    teacher: BranchTeacher
+    isLoading?: boolean
+    onSubmit: (id: string, payload: {
+        teacherName: string
         email: string
-        branch: string
-        subject: string
-        phone: string
+        phoneNumber: string
+        branchName: string
+        subject: string[]
+        assignClass: string[]
         address: string
-        assignedClass?: string
-        avatar?: string
-    }
+    }) => Promise<string | null>
 }
 
-export function EditTeacherDialog({ open, onOpenChange, teacher }: EditTeacherDialogProps) {
-    const [formData, setFormData] = useState({
-        name: teacher.name,
-        email: teacher.email,
-        branch: teacher.branch,
-        subject: teacher.subject,
-        assignedClass: teacher.assignedClass || "",
-        phone: teacher.phone,
-        address: teacher.address,
-        avatar: teacher.avatar || "",
-    })
+const subjects = [
+    "Mathematics",
+    "Science",
+    "English",
+    "History",
+    "Physics",
+    "Chemistry",
+    "Biology",
+    "Computer Science",
+]
 
-    const handleSubmit = (e: React.FormEvent) => {
+const classOptions = ["Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"]
+
+export function EditTeacherDialog({
+    open,
+    onOpenChange,
+    teacher,
+    isLoading = false,
+    onSubmit,
+}: EditTeacherDialogProps) {
+    const [formData, setFormData] = useState({
+        teacherName: teacher.teacherName,
+        email: teacher.email,
+        branchName: teacher.branchName,
+        subject: teacher.subject,
+        assignClass: teacher.assignClass[0] || "",
+        phoneNumber: teacher.phoneNumber,
+        address: teacher.address,
+    })
+    const [error, setError] = useState("")
+    const [isSubjectMenuOpen, setIsSubjectMenuOpen] = useState(false)
+
+    useEffect(() => {
+        if (open) {
+            setFormData({
+                teacherName: teacher.teacherName,
+                email: teacher.email,
+                branchName: teacher.branchName,
+                subject: teacher.subject,
+                assignClass: teacher.assignClass[0] || "",
+                phoneNumber: teacher.phoneNumber,
+                address: teacher.address,
+            })
+            setError("")
+            setIsSubjectMenuOpen(false)
+        }
+    }, [open, teacher])
+
+    const toggleSubject = (subjectName: string) => {
+        setFormData((prev) => ({
+            ...prev,
+            subject: prev.subject.includes(subjectName)
+                ? prev.subject.filter((item) => item !== subjectName)
+                : [...prev.subject, subjectName],
+        }))
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        console.log("Updating teacher:", teacher.id, formData)
+        setError("")
+
+        if (formData.subject.length === 0) {
+            setError("Please select at least one subject.")
+            return
+        }
+
+        const result = await onSubmit(teacher.id, {
+            teacherName: formData.teacherName.trim(),
+            email: formData.email.trim(),
+            phoneNumber: formData.phoneNumber.trim(),
+            branchName: formData.branchName,
+            subject: formData.subject,
+            assignClass: formData.assignClass ? [formData.assignClass] : [],
+            address: formData.address.trim(),
+        })
+
+        if (result) {
+            setError(result)
+            return
+        }
+
         onOpenChange(false)
     }
 
@@ -54,6 +120,12 @@ export function EditTeacherDialog({ open, onOpenChange, teacher }: EditTeacherDi
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    {error && (
+                        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                            {error}
+                        </div>
+                    )}
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700">
                             Teacher Name <span className="text-red-500">*</span>
@@ -61,9 +133,9 @@ export function EditTeacherDialog({ open, onOpenChange, teacher }: EditTeacherDi
                         <input
                             type="text"
                             required
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                            value={formData.teacherName}
+                            onChange={(e) => setFormData({ ...formData, teacherName: e.target.value })}
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         />
                     </div>
 
@@ -76,7 +148,7 @@ export function EditTeacherDialog({ open, onOpenChange, teacher }: EditTeacherDi
                             required
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         />
                     </div>
 
@@ -84,57 +156,65 @@ export function EditTeacherDialog({ open, onOpenChange, teacher }: EditTeacherDi
                         <label className="block text-sm font-medium text-gray-700">
                             Branch <span className="text-red-500">*</span>
                         </label>
-                        <select
+                        <input
+                            type="text"
                             required
-                            value={formData.branch}
-                            onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                        >
-                            <option value="Main Campus">Main Campus</option>
-                            <option value="North Branch">North Branch</option>
-                            <option value="South Branch">South Branch</option>
-                        </select>
+                            value={formData.branchName}
+                            disabled
+                            className="mt-1 w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-700"
+                        />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Subject</label>
-                            <Select
-                                value={formData.subject}
-                                onValueChange={(value) => setFormData({ ...formData, subject: value })}
+                        <div className="relative">
+                            <label className="block text-sm font-medium text-gray-700">Subjects</label>
+                            <button
+                                type="button"
+                                onClick={() => setIsSubjectMenuOpen((prev) => !prev)}
+                                className="mt-1 flex min-h-[42px] w-full items-center justify-between rounded-lg border border-gray-300 px-3 py-2 text-left text-sm"
                             >
-                                <SelectTrigger className="mt-1">
-                                    <SelectValue placeholder="Select Subject" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Mathematics">Mathematics</SelectItem>
-                                    <SelectItem value="Science">Science</SelectItem>
-                                    <SelectItem value="English">English</SelectItem>
-                                    <SelectItem value="History">History</SelectItem>
-                                    <SelectItem value="Physics">Physics</SelectItem>
-                                    <SelectItem value="Chemistry">Chemistry</SelectItem>
-                                    <SelectItem value="Biology">Biology</SelectItem>
-                                    <SelectItem value="Computer Science">Computer Science</SelectItem>
-                                </SelectContent>
-                            </Select>
+                                <span className="truncate text-gray-700">
+                                    {formData.subject.length > 0 ? formData.subject.join(", ") : "Select subjects"}
+                                </span>
+                                <ChevronDown className="h-4 w-4 text-gray-400" />
+                            </button>
+                            {isSubjectMenuOpen && (
+                                <div className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+                                    <div className="max-h-40 space-y-1 overflow-auto">
+                                        {subjects.map((subjectName) => {
+                                            const checked = formData.subject.includes(subjectName)
+                                            return (
+                                                <button
+                                                    key={subjectName}
+                                                    type="button"
+                                                    onClick={() => toggleSubject(subjectName)}
+                                                    className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-gray-50"
+                                                >
+                                                    <span className={`flex h-4 w-4 items-center justify-center rounded border ${checked ? "border-emerald-600 bg-emerald-600 text-white" : "border-gray-300"}`}>
+                                                        {checked ? <Check className="h-3 w-3" /> : null}
+                                                    </span>
+                                                    {subjectName}
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Assigned Class</label>
-                            <Select
-                                value={formData.assignedClass}
-                                onValueChange={(value) => setFormData({ ...formData, assignedClass: value })}
+                            <select
+                                value={formData.assignClass}
+                                onChange={(e) => setFormData({ ...formData, assignClass: e.target.value })}
+                                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                             >
-                                <SelectTrigger className="mt-1">
-                                    <SelectValue placeholder="Select Class" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Grade 1-A">Grade 1-A</SelectItem>
-                                    <SelectItem value="Grade 1-B">Grade 1-B</SelectItem>
-                                    <SelectItem value="Grade 2-A">Grade 2-A</SelectItem>
-                                    <SelectItem value="Grade 2-B">Grade 2-B</SelectItem>
-                                    <SelectItem value="Grade 3-A">Grade 3-A</SelectItem>
-                                </SelectContent>
-                            </Select>
+                                <option value="">Select Class</option>
+                                {classOptions.map((option) => (
+                                    <option key={option} value={option}>
+                                        {option}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     </div>
 
@@ -145,10 +225,9 @@ export function EditTeacherDialog({ open, onOpenChange, teacher }: EditTeacherDi
                         <input
                             type="tel"
                             required
-                            value={formData.phone}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                            placeholder="123-456-7890"
+                            value={formData.phoneNumber}
+                            onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         />
                     </div>
 
@@ -161,8 +240,7 @@ export function EditTeacherDialog({ open, onOpenChange, teacher }: EditTeacherDi
                             required
                             value={formData.address}
                             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                            placeholder="123 Main St, City, Country"
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         />
                     </div>
 
@@ -176,10 +254,11 @@ export function EditTeacherDialog({ open, onOpenChange, teacher }: EditTeacherDi
                         </button>
                         <button
                             type="submit"
-                            style={{ backgroundColor: 'rgba(16, 185, 129, 0.8)' }}
-                            className="flex-1 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors"
+                            disabled={isLoading}
+                            style={{ backgroundColor: "rgba(16, 185, 129, 0.8)" }}
+                            className="flex-1 rounded-lg px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-70"
                         >
-                            Update Teacher
+                            {isLoading ? "Updating..." : "Update Teacher"}
                         </button>
                     </div>
                 </form>

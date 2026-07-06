@@ -1,18 +1,12 @@
 "use client"
 
 import { X, Mail, Building2, GraduationCap, Phone, User } from "lucide-react"
+import type { BranchStudent } from "@/types/branch-user"
 
 interface ViewStudentDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    student: {
-        name: string
-        email: string
-        branch: string
-        grade: string
-        phone: string
-        guardian: string
-    }
+    student: BranchStudent
 }
 
 export function ViewStudentDialog({ open, onOpenChange, student }: ViewStudentDialogProps) {
@@ -50,7 +44,7 @@ export function ViewStudentDialog({ open, onOpenChange, student }: ViewStudentDi
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-gray-500">Branch</p>
-                                    <p className="mt-1 text-sm text-gray-900">{student.branch}</p>
+                                    <p className="mt-1 text-sm text-gray-900">{student.branchName}</p>
                                 </div>
                             </div>
                         </div>
@@ -65,21 +59,21 @@ export function ViewStudentDialog({ open, onOpenChange, student }: ViewStudentDi
                                     <GraduationCap className="h-5 w-5 text-purple-600" />
                                     <p className="text-sm font-medium text-gray-500">Grade</p>
                                 </div>
-                                <p className="mt-2 text-xl font-bold text-gray-900">{student.grade}</p>
+                                <p className="mt-2 text-xl font-bold text-gray-900">{student.className}</p>
                             </div>
                             <div className="rounded-lg border border-gray-200 p-4">
                                 <div className="flex items-center gap-2">
                                     <Phone className="h-5 w-5 text-blue-600" />
                                     <p className="text-sm font-medium text-gray-500">Phone</p>
                                 </div>
-                                <p className="mt-2 text-sm font-semibold text-gray-900">{student.phone}</p>
+                                <p className="mt-2 text-sm font-semibold text-gray-900">{student.guardianPhone}</p>
                             </div>
                             <div className="rounded-lg border border-gray-200 p-4">
                                 <div className="flex items-center gap-2">
                                     <User className="h-5 w-5 text-orange-600" />
                                     <p className="text-sm font-medium text-gray-500">Guardian</p>
                                 </div>
-                                <p className="mt-2 text-sm font-semibold text-gray-900">{student.guardian}</p>
+                                <p className="mt-2 text-sm font-semibold text-gray-900">{student.guardianName}</p>
                             </div>
                         </div>
                     </div>

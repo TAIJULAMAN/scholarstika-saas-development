@@ -39,6 +39,7 @@ export const baseApi = createApi({
     "mission",
     "vision",
     "team",
-    "branchManagement"
+    "branchManagement",
+    "branchUsers",
   ],
 });
