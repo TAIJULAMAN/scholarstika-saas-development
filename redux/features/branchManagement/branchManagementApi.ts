@@ -9,6 +9,49 @@ const branchManagementApi = baseApi.injectEndpoints({
       }),
       providesTags: ["branchManagement"],
     }),
+    getMyBranchAdmins: builder.query({
+      query: ({
+        page,
+        limit,
+        searchTerm,
+      }: {
+        page: number;
+        limit: number;
+        searchTerm?: string;
+      }) => ({
+        url: "branch_management/find_my_all_branch_admin",
+        method: "GET",
+        params: {
+          page,
+          limit,
+          ...(searchTerm ? { searchTerm } : {}),
+        },
+      }),
+      providesTags: ["branchManagement"],
+    }),
+    createBranchAdmin: builder.mutation({
+      query: (data) => ({
+        url: "branch_management/create_branch_admin",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["branchManagement"],
+    }),
+    updateBranchAdmin: builder.mutation({
+      query: ({ id, ...data }) => ({
+        url: `branch_management/update_branch_admin/${id}`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ["branchManagement"],
+    }),
+    deleteBranchAdmin: builder.mutation({
+      query: (id: string) => ({
+        url: `branch_management/delete_branch_admin/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["branchManagement"],
+    }),
     getInstitutionBranchStats: builder.query({
       query: (branchId?: string) => ({
         url: "branch_management/institution_branch_stats",
@@ -73,6 +116,10 @@ const branchManagementApi = baseApi.injectEndpoints({
 
 export const {
   useGetInstitutionBranchOptionsQuery,
+  useGetMyBranchAdminsQuery,
+  useCreateBranchAdminMutation,
+  useUpdateBranchAdminMutation,
+  useDeleteBranchAdminMutation,
   useGetInstitutionBranchStatsQuery,
   useGetInstitutionBranchesQuery,
   useCreateInstitutionBranchMutation,

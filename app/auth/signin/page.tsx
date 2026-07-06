@@ -54,7 +54,11 @@ export default function SignInPage() {
 
             login(user)
             localStorage.setItem("registeredUser", JSON.stringify(user))
-            router.push("/auth/trial-offer")
+            if (user.role === "branch_admin" || user.role === "branch_manager") {
+                router.push("/branch/dashboard")
+            } else {
+                router.push("/auth/trial-offer")
+            }
         } catch (err) {
             const apiError = err as { data?: { message?: string; errorMessages?: Array<{ message?: string }> } }
             setError(

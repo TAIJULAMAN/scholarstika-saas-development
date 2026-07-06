@@ -22,6 +22,11 @@ export default function TrialOfferPage() {
     const isPaid = Boolean(paymentStatus?.isPaid)
 
     useEffect(() => {
+        if (user?.role === "branch_admin" || user?.role === "branch_manager") {
+            router.replace("/branch/dashboard")
+            return
+        }
+
         if (!user || isPaymentStatusLoading || !isPaid) {
             return
         }
@@ -29,7 +34,7 @@ export default function TrialOfferPage() {
         const targetRoute =
             user.role === "institution_manager"
                 ? "/institution/dashboard"
-                : user.role === "branch_manager"
+                : user.role === "branch_manager" || user.role === "branch_admin"
                     ? "/branch/dashboard"
                     : "/"
 

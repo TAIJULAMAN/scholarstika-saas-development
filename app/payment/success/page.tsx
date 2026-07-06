@@ -40,7 +40,7 @@ export default function PaymentSuccessPage() {
       const dashboardRoute =
         user.role === "institution_manager"
           ? "/institution/dashboard"
-          : user.role === "branch_manager"
+          : user.role === "branch_manager" || user.role === "branch_admin"
             ? "/branch/dashboard"
             : "/";
 

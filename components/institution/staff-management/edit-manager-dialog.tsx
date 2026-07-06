@@ -1,54 +1,72 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-interface Manager {
-    id: number
-    name: string
-    email: string
-    phone: string
-    branchName: string
-    branchId: string
-    joinedDate: string
-    status: string
-}
+import { BranchAdmin, BranchOption } from "@/types/branch-admin"
 
 interface EditManagerDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    manager: Manager
+    manager: BranchAdmin
+    branchOptions: BranchOption[]
+    onSubmit: (data: {
+        id: string
+        fullName: string
+        emailAddress: string
+        phoneNumber: string
+        assignBranch: string
+        joinDate: string
+        subscriptionId?: string
+    }) => Promise<void>
+    isSubmitting?: boolean
 }
 
-// Mock branches data
-const branches = [
-    { id: "BRN-001", name: "Downtown Campus" },
-    { id: "BRN-002", name: "North Valley Branch" },
-    { id: "BRN-003", name: "Eastside Institute" },
-    { id: "BRN-004", name: "Westwood Academy" },
-    { id: "BRN-005", name: "Southgate College" },
-    { id: "BRN-006", name: "Riverside Campus" },
-    { id: "BRN-007", name: "Hillside Academy" },
-    { id: "BRN-008", name: "Central Institute" },
-]
-
-export function EditManagerDialog({ open, onOpenChange, manager }: EditManagerDialogProps) {
+export function EditManagerDialog({
+    open,
+    onOpenChange,
+    manager,
+    branchOptions,
+    onSubmit,
+    isSubmitting = false,
+}: EditManagerDialogProps) {
     const [formData, setFormData] = useState({
-        name: manager.name,
-        email: manager.email,
-        phone: manager.phone,
-        branchId: manager.branchId,
-        joinedDate: manager.joinedDate,
+        fullName: manager.fullName,
+        emailAddress: manager.emailAddress,
+        phoneNumber: manager.phoneNumber,
+        assignBranch: manager.assignBranch,
+        joinDate: manager.joinDate ? manager.joinDate.slice(0, 10) : "",
+        subscriptionId: manager.subscriptionId || "",
     })
 
-    const handleSubmit = (e: React.FormEvent) => {
+    useEffect(() => {
+        setFormData({
+            fullName: manager.fullName,
+            emailAddress: manager.emailAddress,
+            phoneNumber: manager.phoneNumber,
+            assignBranch: manager.assignBranch,
+            joinDate: manager.joinDate ? manager.joinDate.slice(0, 10) : "",
+            subscriptionId: manager.subscriptionId || "",
+        })
+    }, [manager])
+
+    const availableBranches = useMemo(
+        () =>
+            branchOptions.filter(
+                (branch) => !branch.hasAssignedAdmin || branch.name === manager.assignBranch,
+            ),
+        [branchOptions, manager.assignBranch],
+    )
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        console.log("Updating manager:", formData)
-        onOpenChange(false)
+        await onSubmit({
+            id: manager.id,
+            ...formData,
+        })
     }
 
     return (
@@ -59,73 +77,74 @@ export function EditManagerDialog({ open, onOpenChange, manager }: EditManagerDi
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-2">
-                        {/* Full Name */}
                         <div className="space-y-2">
-                            <Label htmlFor="name">Full Name *</Label>
+                            <Label htmlFor="fullName">Full Name *</Label>
                             <Input
-                                id="name"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                id="fullName"
+                                value={formData.fullName}
+                                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                                 placeholder="Enter full name"
                                 required
                             />
                         </div>
 
-                        {/* Email */}
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email Address *</Label>
+                            <Label htmlFor="emailAddress">Email Address *</Label>
                             <Input
-                                id="email"
+                                id="emailAddress"
                                 type="email"
-                                value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                value={formData.emailAddress}
+                                onChange={(e) => setFormData({ ...formData, emailAddress: e.target.value })}
                                 placeholder="admin@scholastika.edu"
                                 required
                             />
                         </div>
 
-                        {/* Phone */}
                         <div className="space-y-2">
-                            <Label htmlFor="phone">Phone Number *</Label>
+                            <Label htmlFor="phoneNumber">Phone Number *</Label>
                             <Input
-                                id="phone"
+                                id="phoneNumber"
                                 type="tel"
-                                value={formData.phone}
-                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                value={formData.phoneNumber}
+                                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                                 placeholder="+1 (555) 123-4567"
                                 required
                             />
                         </div>
 
-                        {/* Branch */}
                         <div className="space-y-2">
                             <Label htmlFor="branch">Assign Branch *</Label>
                             <Select
-                                value={formData.branchId}
-                                onValueChange={(value) => setFormData({ ...formData, branchId: value })}
-                                required
+                                value={formData.assignBranch}
+                                onValueChange={(value) => {
+                                    const selectedBranch = branchOptions.find((branch) => branch.name === value)
+                                    setFormData({
+                                        ...formData,
+                                        assignBranch: value,
+                                        subscriptionId: selectedBranch?.subscriptionId || "",
+                                    })
+                                }}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select a branch" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {branches.map((branch) => (
-                                        <SelectItem key={branch.id} value={branch.id}>
-                                            {branch.name} ({branch.id})
+                                    {availableBranches.map((branch) => (
+                                        <SelectItem key={branch.id} value={branch.name}>
+                                            {branch.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                         </div>
 
-                        {/* Joined Date */}
                         <div className="space-y-2">
-                            <Label htmlFor="joinedDate">Joining Date *</Label>
+                            <Label htmlFor="joinDate">Joining Date *</Label>
                             <Input
-                                id="joinedDate"
+                                id="joinDate"
                                 type="date"
-                                value={formData.joinedDate}
-                                onChange={(e) => setFormData({ ...formData, joinedDate: e.target.value })}
+                                value={formData.joinDate}
+                                onChange={(e) => setFormData({ ...formData, joinDate: e.target.value })}
                                 required
                             />
                         </div>
@@ -135,8 +154,8 @@ export function EditManagerDialog({ open, onOpenChange, manager }: EditManagerDi
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                             Cancel
                         </Button>
-                        <Button type="submit" style={{ backgroundColor: 'rgba(16, 185, 129, 0.8)' }} className="text-white">
-                            Save Changes
+                        <Button type="submit" disabled={isSubmitting} style={{ backgroundColor: 'rgba(16, 185, 129, 0.8)' }} className="text-white">
+                            {isSubmitting ? "Saving..." : "Save Changes"}
                         </Button>
                     </div>
                 </form>

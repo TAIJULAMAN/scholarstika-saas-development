@@ -8,12 +8,13 @@ interface DeleteManagerDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     managerName: string
+    onConfirm: () => Promise<void>
+    isDeleting?: boolean
 }
 
-export function DeleteManagerDialog({ open, onOpenChange, managerName }: DeleteManagerDialogProps) {
-    const handleDelete = () => {
-        console.log("Deleting manager:", managerName)
-        onOpenChange(false)
+export function DeleteManagerDialog({ open, onOpenChange, managerName, onConfirm, isDeleting = false }: DeleteManagerDialogProps) {
+    const handleDelete = async () => {
+        await onConfirm()
     }
 
     return (
@@ -46,9 +47,10 @@ export function DeleteManagerDialog({ open, onOpenChange, managerName }: DeleteM
                         </Button>
                         <Button
                             onClick={handleDelete}
+                            disabled={isDeleting}
                             className="bg-red-600 hover:bg-red-700 text-white"
                         >
-                            Delete Admin
+                            {isDeleting ? "Deleting..." : "Delete Admin"}
                         </Button>
                     </div>
                 </div>

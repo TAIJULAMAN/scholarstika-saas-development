@@ -190,7 +190,7 @@ export function Header() {
                       <span className="text-[10px] font-medium text-emerald-600 uppercase tracking-wide leading-none mt-0.5">
                         {user.role === "institution_manager"
                           ? "Global Admin"
-                          : user.role === "branch_manager"
+                          : user.role === "branch_manager" || user.role === "branch_admin"
                             ? "Branch Admin"
                             : user.role.replace("_", " ")}
                       </span>
@@ -208,6 +208,7 @@ export function Header() {
                           parent: "/parent/dashboard",
                           teacher: "/teacher/dashboard",
                           branch_manager: "/branch/dashboard",
+                          branch_admin: "/branch/dashboard",
                           institution_manager: "/institution/dashboard",
                           bursar: "/bursar/dashboard",
                           nurse: "/nurse",
