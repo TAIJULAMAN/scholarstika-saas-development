@@ -2,9 +2,25 @@
 
 import { Star, Play, Quote, Award, Users, TrendingUp } from "lucide-react"
 import { useState } from "react"
+import { useGetAllTestimonialsQuery } from "@/redux/features/testimonials/testimonialsApi"
+import { imgUrl } from "@/config/envConfig"
 
 export default function TestimonialsPage() {
     const [selectedVideo, setSelectedVideo] = useState<string | null>(null)
+    const { data: testimonialsResponse } = useGetAllTestimonialsQuery(undefined)
+    
+    // Format fetched videos
+    const fetchedVideos = testimonialsResponse?.data?.data?.map((item: any, index: number) => ({
+        name: item.name,
+        role: item.designation,
+        institution: item.workingPlace,
+        thumbnail: videoTestimonials[index % videoTestimonials.length].thumbnail,
+        videoUrl: item.videoUrl?.startsWith('http') 
+            ? item.videoUrl 
+            : `${imgUrl}/${item.videoUrl}`
+    })) || []
+    
+    const displayVideos = fetchedVideos.length > 0 ? fetchedVideos : videoTestimonials;
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
@@ -73,7 +89,7 @@ export default function TestimonialsPage() {
                     </div>
 
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {videoTestimonials.map((video, index) => (
+                        {displayVideos.map((video: any, index: number) => (
                             <div
                                 key={index}
                                 className="group relative overflow-hidden rounded-2xl bg-gray-900 shadow-lg transition-all hover:shadow-2xl"
@@ -236,13 +252,22 @@ export default function TestimonialsPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
-                        <div className="aspect-video">
-                            <iframe
-                                src={selectedVideo}
-                                className="h-full w-full rounded-lg"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                            ></iframe>
+                        <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                            {selectedVideo?.includes('youtube.com') || selectedVideo?.includes('vimeo.com') ? (
+                                <iframe
+                                    src={selectedVideo}
+                                    className="h-full w-full"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                ></iframe>
+                            ) : (
+                                <video
+                                    src={selectedVideo || ''}
+                                    className="h-full w-full object-contain"
+                                    controls
+                                    autoPlay
+                                />
+                            )}
                         </div>
                     </div>
                 </div>
