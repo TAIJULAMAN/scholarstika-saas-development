@@ -7,6 +7,7 @@ import { CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUser } from "@/context/user-context";
+import { getDashboardRouteForRole } from "@/lib/auth-user";
 
 export default function PaymentSuccessPage() {
   const router = useRouter();
@@ -21,14 +22,23 @@ export default function PaymentSuccessPage() {
     }
 
     if (countdown <= 0) {
-      const dashboardRoute =
-        user.role === "institution_manager"
-          ? "/institution/dashboard"
-          : user.role === "branch_manager"
-            ? "/branch/dashboard"
-            : "/";
+      let checkoutContext: { returnTo?: string } | null = null;
 
-      router.push(dashboardRoute);
+      try {
+        const checkoutContextRaw = localStorage.getItem("scholarstika_checkout_context");
+        checkoutContext = checkoutContextRaw ? JSON.parse(checkoutContextRaw) : null;
+      } catch (error) {
+        console.error("Failed to parse checkout context", error);
+        localStorage.removeItem("scholarstika_checkout_context");
+      }
+
+      if (checkoutContext?.returnTo) {
+        localStorage.removeItem("scholarstika_checkout_context");
+        router.push(checkoutContext.returnTo);
+        return;
+      }
+
+      router.push(getDashboardRouteForRole(user.role));
       return;
     }
 

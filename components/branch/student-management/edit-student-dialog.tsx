@@ -1,35 +1,68 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { X } from "lucide-react"
+import type { BranchStudent } from "@/types/branch-user"
 
 interface EditStudentDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    student: {
-        id: number
+    student: BranchStudent
+    isLoading?: boolean
+    onSubmit: (id: string, payload: {
         name: string
         email: string
-        branch: string
-        grade: string
-        phone: string
-        guardian: string
-    }
+        branchName: string
+        className: string
+        guardianName: string
+        guardianPhone: string
+    }) => Promise<string | null>
 }
 
-export function EditStudentDialog({ open, onOpenChange, student }: EditStudentDialogProps) {
+const classOptions = ["Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"]
+
+export function EditStudentDialog({
+    open,
+    onOpenChange,
+    student,
+    isLoading = false,
+    onSubmit,
+}: EditStudentDialogProps) {
     const [formData, setFormData] = useState({
         name: student.name,
         email: student.email,
-        branch: student.branch,
-        grade: student.grade,
-        phone: student.phone,
-        guardian: student.guardian,
+        branchName: student.branchName,
+        className: student.className,
+        guardianName: student.guardianName,
+        guardianPhone: student.guardianPhone,
     })
+    const [error, setError] = useState("")
 
-    const handleSubmit = (e: React.FormEvent) => {
+    useEffect(() => {
+        if (open) {
+            setFormData({
+                name: student.name,
+                email: student.email,
+                branchName: student.branchName,
+                className: student.className,
+                guardianName: student.guardianName,
+                guardianPhone: student.guardianPhone,
+            })
+            setError("")
+        }
+    }, [open, student])
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        console.log("Updating student:", student.id, formData)
+        setError("")
+
+        const result = await onSubmit(student.id, formData)
+
+        if (result) {
+            setError(result)
+            return
+        }
+
         onOpenChange(false)
     }
 
@@ -49,6 +82,12 @@ export function EditStudentDialog({ open, onOpenChange, student }: EditStudentDi
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    {error && (
+                        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                            {error}
+                        </div>
+                    )}
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700">
                             Student Name <span className="text-red-500">*</span>
@@ -58,7 +97,7 @@ export function EditStudentDialog({ open, onOpenChange, student }: EditStudentDi
                             required
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         />
                     </div>
 
@@ -71,7 +110,7 @@ export function EditStudentDialog({ open, onOpenChange, student }: EditStudentDi
                             required
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         />
                     </div>
 
@@ -79,16 +118,13 @@ export function EditStudentDialog({ open, onOpenChange, student }: EditStudentDi
                         <label className="block text-sm font-medium text-gray-700">
                             Branch <span className="text-red-500">*</span>
                         </label>
-                        <select
+                        <input
+                            type="text"
                             required
-                            value={formData.branch}
-                            onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                        >
-                            <option value="Main Campus">Main Campus</option>
-                            <option value="North Branch">North Branch</option>
-                            <option value="South Branch">South Branch</option>
-                        </select>
+                            value={formData.branchName}
+                            disabled
+                            className="mt-1 w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-700"
+                        />
                     </div>
 
                     <div>
@@ -97,15 +133,15 @@ export function EditStudentDialog({ open, onOpenChange, student }: EditStudentDi
                         </label>
                         <select
                             required
-                            value={formData.grade}
-                            onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
-                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                            value={formData.className}
+                            onChange={(e) => setFormData({ ...formData, className: e.target.value })}
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         >
-                            <option value="Grade 8">Grade 8</option>
-                            <option value="Grade 9">Grade 9</option>
-                            <option value="Grade 10">Grade 10</option>
-                            <option value="Grade 11">Grade 11</option>
-                            <option value="Grade 12">Grade 12</option>
+                            {classOptions.map((option) => (
+                                <option key={option} value={option}>
+                                    {option}
+                                </option>
+                            ))}
                         </select>
                     </div>
 
@@ -116,9 +152,9 @@ export function EditStudentDialog({ open, onOpenChange, student }: EditStudentDi
                         <input
                             type="text"
                             required
-                            value={formData.guardian}
-                            onChange={(e) => setFormData({ ...formData, guardian: e.target.value })}
-                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                            value={formData.guardianName}
+                            onChange={(e) => setFormData({ ...formData, guardianName: e.target.value })}
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         />
                     </div>
 
@@ -129,9 +165,9 @@ export function EditStudentDialog({ open, onOpenChange, student }: EditStudentDi
                         <input
                             type="tel"
                             required
-                            value={formData.phone}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                            value={formData.guardianPhone}
+                            onChange={(e) => setFormData({ ...formData, guardianPhone: e.target.value })}
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         />
                     </div>
 
@@ -145,10 +181,11 @@ export function EditStudentDialog({ open, onOpenChange, student }: EditStudentDi
                         </button>
                         <button
                             type="submit"
-                            style={{ backgroundColor: 'rgba(16, 185, 129, 0.8)' }}
-                            className="flex-1 rounded-lg px-4 py-2 text-sm font-medium text-white"
+                            disabled={isLoading}
+                            style={{ backgroundColor: "rgba(16, 185, 129, 0.8)" }}
+                            className="flex-1 rounded-lg px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-70"
                         >
-                            Update Student
+                            {isLoading ? "Updating..." : "Update Student"}
                         </button>
                     </div>
                 </form>

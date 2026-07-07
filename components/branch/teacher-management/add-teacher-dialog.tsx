@@ -1,56 +1,123 @@
 "use client"
 
-import { useState } from "react"
-import { X, Check, ChevronsUpDown } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { cn } from "@/lib/utils"
+import { useEffect, useState } from "react"
+import { Check, ChevronDown, Eye, EyeOff, X } from "lucide-react"
+
+type AddTeacherPayload = {
+    teacherName: string
+    email: string
+    phoneNumber: string
+    branchName: string
+    subject: string[]
+    assignClass: string[]
+    password: string
+    address: string
+    subscriptionId: string
+}
 
 interface AddTeacherDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
+    branchName?: string
+    subscriptionId?: string
+    isLoading?: boolean
+    onSubmit: (payload: AddTeacherPayload) => Promise<string | null>
 }
 
-export function AddTeacherDialog({ open, onOpenChange }: AddTeacherDialogProps) {
-    const [formData, setFormData] = useState({
-        name: "",
-        email: "",
-        branch: "",
-        subject: [] as string[],
-        assignedClass: "",
-        phone: "",
-        address: "",
-        avatar: ""
-    })
+const subjects = [
+    "Mathematics",
+    "Science",
+    "English",
+    "History",
+    "Physics",
+    "Chemistry",
+    "Biology",
+    "Computer Science",
+]
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault()
-        console.log("Creating teacher:", formData)
-        onOpenChange(false)
+const classOptions = ["Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"]
 
-        setFormData({ name: "", email: "", branch: "", subject: [], assignedClass: "", phone: "", address: "", avatar: "" })
+const initialFormData = {
+    teacherName: "",
+    email: "",
+    phoneNumber: "",
+    subject: [] as string[],
+    assignClass: "",
+    password: "",
+    confirmPassword: "",
+    address: "",
+}
+
+export function AddTeacherDialog({
+    open,
+    onOpenChange,
+    branchName,
+    subscriptionId,
+    isLoading = false,
+    onSubmit,
+}: AddTeacherDialogProps) {
+    const [formData, setFormData] = useState(initialFormData)
+    const [error, setError] = useState("")
+    const [showPassword, setShowPassword] = useState(false)
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+    const [isSubjectMenuOpen, setIsSubjectMenuOpen] = useState(false)
+
+    useEffect(() => {
+        if (open) {
+            setFormData(initialFormData)
+            setError("")
+            setShowPassword(false)
+            setShowConfirmPassword(false)
+            setIsSubjectMenuOpen(false)
+        }
+    }, [open])
+
+    const toggleSubject = (subjectName: string) => {
+        setFormData((prev) => ({
+            ...prev,
+            subject: prev.subject.includes(subjectName)
+                ? prev.subject.filter((item) => item !== subjectName)
+                : [...prev.subject, subjectName],
+        }))
     }
 
-    const subjects = [
-        "Mathematics",
-        "Science",
-        "English",
-        "History",
-        "Physics",
-        "Chemistry",
-        "Biology",
-        "Computer Science",
-    ]
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setError("")
 
-    const toggleSubject = (subject: string) => {
-        setFormData(prev => ({
-            ...prev,
-            subject: prev.subject.includes(subject)
-                ? prev.subject.filter(s => s !== subject)
-                : [...prev.subject, subject]
-        }))
+        if (!branchName || !subscriptionId) {
+            setError("Branch information is missing. Please sign in again.")
+            return
+        }
+
+        if (formData.subject.length === 0) {
+            setError("Please select at least one subject.")
+            return
+        }
+
+        if (formData.password !== formData.confirmPassword) {
+            setError("Password and confirm password do not match.")
+            return
+        }
+
+        const result = await onSubmit({
+            teacherName: formData.teacherName.trim(),
+            email: formData.email.trim(),
+            phoneNumber: formData.phoneNumber.trim(),
+            branchName,
+            subject: formData.subject,
+            assignClass: formData.assignClass ? [formData.assignClass] : [],
+            password: formData.password,
+            address: formData.address.trim(),
+            subscriptionId,
+        })
+
+        if (result) {
+            setError(result)
+            return
+        }
+
+        onOpenChange(false)
     }
 
     if (!open) return null
@@ -69,6 +136,12 @@ export function AddTeacherDialog({ open, onOpenChange }: AddTeacherDialogProps) 
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    {error && (
+                        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                            {error}
+                        </div>
+                    )}
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700">
                             Teacher Name <span className="text-red-500">*</span>
@@ -76,9 +149,9 @@ export function AddTeacherDialog({ open, onOpenChange }: AddTeacherDialogProps) 
                         <input
                             type="text"
                             required
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                            value={formData.teacherName}
+                            onChange={(e) => setFormData({ ...formData, teacherName: e.target.value })}
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                             placeholder="Enter teacher name"
                         />
                     </div>
@@ -92,7 +165,7 @@ export function AddTeacherDialog({ open, onOpenChange }: AddTeacherDialogProps) 
                             required
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                             placeholder="teacher@example.com"
                         />
                     </div>
@@ -103,107 +176,77 @@ export function AddTeacherDialog({ open, onOpenChange }: AddTeacherDialogProps) 
                         </label>
                         <select
                             required
-                            value={formData.branch}
-                            onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                            value={branchName || ""}
+                            onChange={() => {}}
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         >
-                            <option value="">Select branch</option>
-                            <option value="Main Campus">Main Campus</option>
-                            <option value="North Branch">North Branch</option>
-                            <option value="South Branch">South Branch</option>
+                            <option value={branchName || ""}>{branchName || "Assigned branch"}</option>
                         </select>
                     </div>
 
-                    <div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Subjects</label>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <button
-                                            type="button"
-                                            className="mt-1 flex min-h-[42px] w-full items-center justify-between rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                                        >
-                                            <div className="flex flex-wrap gap-1">
-                                                {formData.subject.length > 0 ? (
-                                                    formData.subject.map((s) => (
-                                                        <Badge key={s} variant="secondary" className="bg-purple-50 text-purple-700 hover:bg-purple-100 uppercase text-[10px] font-bold">
-                                                            {s}
-                                                            <X
-                                                                className="ml-1 h-3 w-3 cursor-pointer"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    toggleSubject(s);
-                                                                }}
-                                                            />
-                                                        </Badge>
-                                                    ))
-                                                ) : (
-                                                    <span className="text-gray-500">Select subjects</span>
-                                                )}
-                                            </div>
-                                            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
-                                        </button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[200px] p-0" align="start">
-                                        <Command>
-                                            <CommandInput placeholder="Search subjects..." />
-                                            <CommandList>
-                                                <CommandEmpty>No subject found.</CommandEmpty>
-                                                <CommandGroup>
-                                                    {subjects.map((s) => (
-                                                        <CommandItem
-                                                            key={s}
-                                                            onSelect={() => toggleSubject(s)}
-                                                            className="cursor-pointer"
-                                                        >
-                                                            <Check
-                                                                className={cn(
-                                                                    "mr-2 h-4 w-4",
-                                                                    formData.subject.includes(s) ? "opacity-100" : "opacity-0"
-                                                                )}
-                                                            />
-                                                            {s}
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Assigned Class</label>
-                                <Select
-                                    value={formData.assignedClass}
-                                    onValueChange={(value) => setFormData({ ...formData, assignedClass: value })}
-                                >
-                                    <SelectTrigger className="mt-1">
-                                        <SelectValue placeholder="Select Class" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Grade 1-A">Grade 1-A</SelectItem>
-                                        <SelectItem value="Grade 1-B">Grade 1-B</SelectItem>
-                                        <SelectItem value="Grade 2-A">Grade 2-A</SelectItem>
-                                        <SelectItem value="Grade 2-B">Grade 2-B</SelectItem>
-                                        <SelectItem value="Grade 3-A">Grade 3-A</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="relative">
+                            <label className="block text-sm font-medium text-gray-700">Subjects</label>
+                            <button
+                                type="button"
+                                onClick={() => setIsSubjectMenuOpen((prev) => !prev)}
+                                className="mt-1 flex min-h-[42px] w-full items-center justify-between rounded-lg border border-gray-300 px-3 py-2 text-left text-sm"
+                            >
+                                <span className="truncate text-gray-700">
+                                    {formData.subject.length > 0 ? formData.subject.join(", ") : "Select subjects"}
+                                </span>
+                                <ChevronDown className="h-4 w-4 text-gray-400" />
+                            </button>
+                            {isSubjectMenuOpen && (
+                                <div className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+                                    <div className="max-h-40 space-y-1 overflow-auto">
+                                        {subjects.map((subjectName) => {
+                                            const checked = formData.subject.includes(subjectName)
+                                            return (
+                                                <button
+                                                    key={subjectName}
+                                                    type="button"
+                                                    onClick={() => toggleSubject(subjectName)}
+                                                    className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-gray-50"
+                                                >
+                                                    <span className={`flex h-4 w-4 items-center justify-center rounded border ${checked ? "border-emerald-600 bg-emerald-600 text-white" : "border-gray-300"}`}>
+                                                        {checked ? <Check className="h-3 w-3" /> : null}
+                                                    </span>
+                                                    {subjectName}
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Assigned Class</label>
+                            <select
+                                value={formData.assignClass}
+                                onChange={(e) => setFormData({ ...formData, assignClass: e.target.value })}
+                                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                            >
+                                <option value="">Select Class</option>
+                                {classOptions.map((option) => (
+                                    <option key={option} value={option}>
+                                        {option}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     </div>
 
                     <div>
-
                         <label className="block text-sm font-medium text-gray-700">
                             Phone Number <span className="text-red-500">*</span>
                         </label>
                         <input
                             type="tel"
                             required
-                            value={formData.phone}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                            value={formData.phoneNumber}
+                            onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                             placeholder="123-456-7890"
                         />
                     </div>
@@ -217,9 +260,55 @@ export function AddTeacherDialog({ open, onOpenChange }: AddTeacherDialogProps) 
                             required
                             value={formData.address}
                             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                             placeholder="123 Main St, City, Country"
                         />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Password <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative mt-1">
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                required
+                                value={formData.password}
+                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                placeholder="Set login password"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword((prev) => !prev)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Confirm Password <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative mt-1">
+                            <input
+                                type={showConfirmPassword ? "text" : "password"}
+                                required
+                                value={formData.confirmPassword}
+                                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                                className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-10 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                placeholder="Confirm login password"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                        </div>
                     </div>
 
                     <div className="flex gap-3 pt-4">
@@ -232,9 +321,11 @@ export function AddTeacherDialog({ open, onOpenChange }: AddTeacherDialogProps) 
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700"
+                            disabled={isLoading}
+                            style={{ backgroundColor: "rgba(16, 185, 129, 0.8)" }}
+                            className="flex-1 rounded-lg px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-70"
                         >
-                            Add Teacher
+                            {isLoading ? "Adding..." : "Add Teacher"}
                         </button>
                     </div>
                 </form>

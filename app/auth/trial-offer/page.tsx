@@ -1,19 +1,49 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Check, Sparkles, LayoutDashboard, Zap, ShieldCheck, Headphones } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useUser } from "@/context/user-context"
 import { useState, useEffect } from "react"
-import Link from "next/link"
+import { useGetMyPaymentStatusQuery } from "@/redux/features/subscription/subscriptionApi"
+import { getDashboardRouteForRole } from "@/lib/auth-user"
 
 export default function TrialOfferPage() {
     const router = useRouter()
     const { user } = useUser()
     const [isLoading, setIsLoading] = useState(false)
-    const targetRoute = user ? "/" : "/auth/signin"
+    const { data: paymentStatusResponse, isLoading: isPaymentStatusLoading } =
+        useGetMyPaymentStatusQuery(undefined, {
+            skip: !user,
+        })
+
+    const paymentStatus = paymentStatusResponse?.data || paymentStatusResponse
+    const isPaid = Boolean(paymentStatus?.isPaid)
+
+    useEffect(() => {
+        const instantAccessRoles = new Set([
+            "branch_admin",
+            "branch_manager",
+            "student",
+            "teacher",
+            "parent",
+            "bursar",
+            "nurse",
+        ])
+
+        if (user?.role && instantAccessRoles.has(user.role)) {
+            router.replace(getDashboardRouteForRole(user.role))
+            return
+        }
+
+        if (!user || isPaymentStatusLoading || !isPaid) {
+            return
+        }
+
+        router.replace(getDashboardRouteForRole(user.role))
+    }, [isPaid, isPaymentStatusLoading, router, user])
 
     const handleClaimTrial = async () => {
         setIsLoading(true)
@@ -23,7 +53,11 @@ export default function TrialOfferPage() {
     }
 
     const handleSkip = () => {
-        router.push(targetRoute)
+        router.push(user ? "/" : "/auth/signin")
+    }
+
+    if (user && !isPaymentStatusLoading && isPaid) {
+        return null
     }
 
     return (

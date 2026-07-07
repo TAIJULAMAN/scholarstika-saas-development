@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { X } from "lucide-react"
 
 interface EditBranchDialogProps {
@@ -13,21 +13,42 @@ interface EditBranchDialogProps {
         location: string
         contact: string
     }
+    onSubmit: (data: {
+        id: string
+        name: string
+        type: string
+        location: string
+        contact: string
+    }) => Promise<void>
 }
 
-export function EditBranchDialog({ open, onOpenChange, branch }: EditBranchDialogProps) {
+export function EditBranchDialog({ open, onOpenChange, branch, onSubmit }: EditBranchDialogProps) {
     const [formData, setFormData] = useState({
         name: branch.name,
         type: branch.type,
         location: branch.location,
         contact: branch.contact,
     })
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
-    const handleSubmit = (e: React.FormEvent) => {
+    useEffect(() => {
+        setFormData({
+            name: branch.name,
+            type: branch.type,
+            location: branch.location,
+            contact: branch.contact,
+        })
+    }, [branch])
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        // In real app, this would call an API to update the branch
-        console.log("Updating branch:", branch.id, formData)
+        setIsSubmitting(true)
+        await onSubmit({
+            id: branch.id,
+            ...formData,
+        })
         onOpenChange(false)
+        setIsSubmitting(false)
     }
 
     if (!open) return null
@@ -111,9 +132,10 @@ export function EditBranchDialog({ open, onOpenChange, branch }: EditBranchDialo
                         </button>
                         <button
                             type="submit"
+                            disabled={isSubmitting}
                             className="flex-1 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
                         >
-                            Update Branch
+                            {isSubmitting ? "Updating..." : "Update Branch"}
                         </button>
                     </div>
                 </form>

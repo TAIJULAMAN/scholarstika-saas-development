@@ -36,3 +36,27 @@ export const normalizeFrontendUser = (user: AuthUser) => ({
   backendRole: user.backendRole || user.role,
   role: getFrontendRole(user),
 });
+
+export const getDashboardRouteForRole = (role?: string) => {
+  switch (role) {
+    case "institution_manager":
+      return "/institution/dashboard";
+    case "branch_manager":
+    case "branch_admin":
+      return "/branch/dashboard";
+    case "student":
+      return "/student/dashboard";
+    case "teacher":
+      return "/teacher/dashboard";
+    case "parent":
+      return "/parent/dashboard";
+    case "bursar":
+      return "/bursar/dashboard";
+    case "nurse":
+      return "/nurse";
+    case "super_admin":
+      return "/";
+    default:
+      return "/";
+  }
+};

@@ -1,262 +1,36 @@
 "use client"
 
-import { useState } from "react"
-import { PageHeader } from "@/components/common/page-header"
+import { useMemo, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TablePagination } from "@/components/common/table-pagination"
-import { Search, Plus, Pencil, Trash2, Eye, Mail, Phone, UserPlus } from "lucide-react"
+import { Search, Plus, Pencil, Trash2, Eye, Mail, Phone, UserPlus, EyeOff } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { ViewStaffDialog } from "@/components/branch/staff-management/view-staff-dialog"
 import { EditStaffDialog } from "@/components/branch/staff-management/edit-staff-dialog"
 import { DeleteStaffDialog } from "@/components/branch/staff-management/delete-staff-dialog"
+import { useUser } from "@/context/user-context"
+import {
+    useCreateBranchStaffMemberMutation,
+    useDeleteBranchStaffMemberMutation,
+    useGetBranchStaffMembersQuery,
+    useGetBranchStudentsQuery,
+    useUpdateBranchStaffMemberMutation,
+} from "@/redux/features/branchManagement/branchUsersApi"
+import type { BranchStaff, BranchStaffRole, BranchStudent } from "@/types/branch-user"
 
-const staffMembers = [
-    {
-        id: 1,
-        name: "Alice Johnson",
-        userName: "Class Monitor",
-        email: "alice.j@scholastika.edu",
-        phone: "+1 (555) 123-4567",
-        role: "Student",
-        grade: "Grade 10-A",
-        joinedDate: "2024-01-15",
-        status: "Active",
-        password: "Pass@word1"
-    },
-    {
-        id: 2,
-        name: "Robert Smith",
-        userName: "Senior Teacher",
-        email: "robert.s@scholastika.edu",
-        phone: "+1 (555) 234-5678",
-        role: "Teacher",
-        subject: "Mathematics",
-        joinedDate: "2023-06-20",
-        status: "Active",
-        password: "Pass@word1"
-    },
-    {
-        id: 3,
-        name: "Mary Williams",
-        userName: "PTA Secretary",
-        email: "mary.w@gmail.com",
-        phone: "+1 (555) 345-6789",
-        role: "Parent",
-        studentName: "Alice Johnson",
-        joinedDate: "2024-01-15",
-        status: "Active",
-        password: "Pass@word1"
-    },
-    {
-        id: 4,
-        name: "John Davis",
-        userName: "Prefect",
-        email: "john.d@scholastika.edu",
-        phone: "+1 (555) 456-7890",
-        role: "Student",
-        grade: "Grade 9-B",
-        joinedDate: "2024-01-10",
-        status: "Active",
-        password: "Pass@word1"
-    },
-    {
-        id: 5,
-        name: "Sarah Martinez",
-        userName: "Assistant Teacher",
-        email: "sarah.m@scholastika.edu",
-        phone: "+1 (555) 567-8901",
-        role: "Teacher",
-        subject: "English",
-        joinedDate: "2023-08-12",
-        status: "Active",
-        password: "Pass@word1"
-    },
-    {
-        id: 6,
-        name: "Michael Brown",
-        userName: "Head Bursar",
-        email: "michael.b@scholastika.edu",
-        phone: "+1 (555) 678-9012",
-        role: "Bursar",
-        department: "Finance",
-        joinedDate: "2024-01-10",
-        status: "Active",
-        password: "Pass@word1"
-    },
-    {
-        id: 7,
-        name: "Emily Davis",
-        userName: "School Nurse",
-        email: "emily.d@scholastika.edu",
-        phone: "+1 (555) 789-0123",
-        role: "Nurse",
-        department: "Health Services",
-        joinedDate: "2024-01-15",
-        status: "Active",
-        password: "Pass@word1"
-    },
-    {
-        id: 8,
-        name: "William Wilson",
-        userName: "Trainee Teacher",
-        email: "william.w@scholastika.edu",
-        phone: "+1 (555) 890-1234",
-        role: "Teacher",
-        subject: "Science",
-        joinedDate: "2023-06-20",
-        status: "Active",
-        password: "Pass@word1"
-    },
-    {
-        id: 9,
-        name: "Olivia Taylor",
-        userName: "Parent Volunteer",
-        email: "olivia.t@gmail.com",
-        phone: "+1 (555) 901-2345",
-        role: "Parent",
-        studentName: "Emily Davis",
-        joinedDate: "2024-01-15",
-        status: "Active",
-        password: "Pass@word1"
-    },
-    {
-        id: 10,
-        name: "James Anderson",
-        userName: "Student Council",
-        email: "james.a@scholastika.edu",
-        phone: "+1 (555) 012-3456",
-        role: "Student",
-        grade: "Grade 12-D",
-        joinedDate: "2024-01-10",
-        status: "Active",
-        password: "Pass@word1"
-    },
-    {
-        id: 11,
-        name: "Sophia Moore",
-        userName: "Department Head",
-        email: "sophia.m@scholastika.edu",
-        phone: "+1 (555) 123-4567",
-        role: "Teacher",
-        subject: "History",
-        joinedDate: "2023-08-12",
-        status: "Active",
-        password: "Pass@word1"
-    },
-    {
-        id: 12,
-        name: "David Wilson",
-        userName: "Guardian",
-        email: "david.w@scholastika.edu",
-        phone: "+1 (555) 234-5678",
-        role: "Parent",
-        studentName: "James Anderson",
-        joinedDate: "2024-01-10",
-        status: "Active",
-        password: "Pass@word1"
-    },
-    {
-        id: 13,
-        name: "Isabella Johnson",
-        userName: "Librarian Assistant",
-        email: "isabella.j@scholastika.edu",
-        phone: "+1 (555) 345-6789",
-        role: "Student",
-        grade: "Grade 11-E",
-        joinedDate: "2024-01-15",
-        status: "Active",
-        password: "Pass@word1"
-    },
-    {
-        id: 14,
-        name: "William Brown",
-        userName: "Substitute Teacher",
-        email: "william.b@scholastika.edu",
-        phone: "+1 (555) 456-7890",
-        role: "Teacher",
-        subject: "Mathematics",
-        joinedDate: "2023-06-20",
-        status: "Active",
-        password: "Pass@word1"
-    },
-    {
-        id: 15,
-        name: "Olivia Davis",
-        userName: "Parent",
-        email: "olivia.d@gmail.com",
-        phone: "+1 (555) 567-8901",
-        role: "Parent",
-        studentName: "Isabella Johnson",
-        joinedDate: "2024-01-15",
-        status: "Active",
-        password: "Pass@word1"
-    },
-    {
-        id: 16,
-        name: "Michael Wilson",
-        userName: "Sports Captain",
-        email: "michael.w@scholastika.edu",
-        phone: "+1 (555) 678-9012",
-        role: "Student",
-        grade: "Grade 12-F",
-        joinedDate: "2024-01-10",
-        status: "Active",
-        password: "Pass@word1"
-    },
-    {
-        id: 17,
-        name: "Emily Taylor",
-        userName: "English Coordinator",
-        email: "emily.t@scholastika.edu",
-        phone: "+1 (555) 789-0123",
-        role: "Teacher",
-        subject: "English",
-        joinedDate: "2023-08-12",
-        status: "Active",
-        password: "Pass@word1"
-    },
-    {
-        id: 18,
-        name: "William Brown",
-        userName: "Parent",
-        email: "william.b@scholastika.edu",
-        phone: "+1 (555) 890-1234",
-        role: "Parent",
-        studentName: "Michael Wilson",
-        joinedDate: "2024-01-10",
-        status: "Active",
-        password: "Pass@word1"
-    },
-    {
-        id: 19,
-        name: "Olivia Davis",
-        userName: "Choir Member",
-        email: "olivia.d@gmail.com",
-        phone: "+1 (555) 901-2345",
-        role: "Student",
-        grade: "Grade 11-G",
-        joinedDate: "2024-01-15",
-        status: "Active",
-        password: "Pass@word1"
-    },
-    {
-        id: 20,
-        name: "Michael Wilson",
-        userName: "Standard Teacher",
-        email: "michael.w@scholastika.edu",
-        phone: "+1 (555) 012-3456",
-        role: "Teacher",
-        subject: "Science",
-        joinedDate: "2023-06-20",
-        status: "Active",
-        password: "Pass@word1"
-    }
+const roleOptions: Array<{ value: BranchStaffRole; label: string }> = [
+    { value: "parent", label: "Parent" },
+    { value: "bursar", label: "Bursar" },
+    { value: "nurse", label: "Nurse" },
 ]
 
+const formatRole = (role: string) => role.charAt(0).toUpperCase() + role.slice(1).toLowerCase()
+
 export default function BranchStaffManagementPage() {
+    const { user } = useUser()
     const [searchQuery, setSearchQuery] = useState("")
     const [roleFilter, setRoleFilter] = useState("all")
     const [currentPage, setCurrentPage] = useState(1)
@@ -264,54 +38,186 @@ export default function BranchStaffManagementPage() {
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-    const [selectedMember, setSelectedMember] = useState<typeof staffMembers[0] | null>(null)
-    const [selectedRole, setSelectedRole] = useState("")
-
-    const filteredMembers = staffMembers.filter(member => {
-        const matchesSearch =
-            member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            member.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            member.role.toLowerCase().includes(searchQuery.toLowerCase())
-        const matchesRole = roleFilter === "all" || member.role === roleFilter
-        return matchesSearch && matchesRole
+    const [selectedMember, setSelectedMember] = useState<BranchStaff | null>(null)
+    const [selectedRole, setSelectedRole] = useState<BranchStaffRole | "">("")
+    const [showPassword, setShowPassword] = useState(false)
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+    const [addError, setAddError] = useState("")
+    const [addFormData, setAddFormData] = useState({
+        name: "",
+        userName: "",
+        email: "",
+        phoneNumber: "",
+        password: "",
+        confirmPassword: "",
+        studentId: "",
     })
 
     const itemsPerPage = 8
-    const totalPages = Math.ceil(filteredMembers.length / itemsPerPage)
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = startIndex + itemsPerPage
-    const currentMembers = filteredMembers.slice(startIndex, endIndex)
+
+    const { data: staffResponse, isLoading: isStaffLoading } = useGetBranchStaffMembersQuery({
+        page: currentPage,
+        limit: itemsPerPage,
+        searchTerm: searchQuery || undefined,
+        role: roleFilter,
+    })
+
+    const { data: studentsResponse } = useGetBranchStudentsQuery({
+        page: 1,
+        limit: 100,
+    })
+
+    const [createBranchStaffMember, { isLoading: isCreating }] = useCreateBranchStaffMemberMutation()
+    const [updateBranchStaffMember, { isLoading: isUpdating }] = useUpdateBranchStaffMemberMutation()
+    const [deleteBranchStaffMember, { isLoading: isDeleting }] = useDeleteBranchStaffMemberMutation()
+
+    const staffPayload = staffResponse?.data ?? staffResponse
+    const currentMembers = useMemo<BranchStaff[]>(
+        () => staffPayload?.data ?? [],
+        [staffPayload]
+    )
+    const meta = staffPayload?.meta ?? {
+        page: currentPage,
+        limit: itemsPerPage,
+        total: currentMembers.length,
+        totalPage: 1,
+    }
+
+    const studentsPayload = studentsResponse?.data ?? studentsResponse
+    const branchStudents = useMemo<BranchStudent[]>(
+        () => studentsPayload?.data ?? [],
+        [studentsPayload]
+    )
 
     const getRoleBadgeColor = (role: string) => {
-        switch (role) {
-            case "Student":
-                return "bg-blue-100 text-blue-800"
-            case "Teacher":
-                return "bg-purple-100 text-purple-800"
-            case "Parent":
+        switch (role.toLowerCase()) {
+            case "parent":
                 return "bg-orange-100 text-orange-800"
-            case "Bursar":
+            case "bursar":
                 return "bg-green-100 text-green-800"
-            case "Nurse":
+            case "nurse":
                 return "bg-pink-100 text-pink-800"
             default:
                 return "bg-gray-100 text-gray-800"
         }
     }
 
-    const handleView = (member: typeof staffMembers[0]) => {
-        setSelectedMember(member)
-        setIsViewDialogOpen(true)
+    const resetAddForm = () => {
+        setSelectedRole("")
+        setAddError("")
+        setShowPassword(false)
+        setShowConfirmPassword(false)
+        setAddFormData({
+            name: "",
+            userName: "",
+            email: "",
+            phoneNumber: "",
+            password: "",
+            confirmPassword: "",
+            studentId: "",
+        })
     }
 
-    const handleEdit = (member: typeof staffMembers[0]) => {
+    const extractErrorMessage = (error: unknown) => {
+        const apiError = error as {
+            data?: {
+                message?: string
+                errorMessages?: Array<{ message?: string }>
+            }
+        }
+
+        return (
+            apiError?.data?.message ||
+            apiError?.data?.errorMessages?.[0]?.message ||
+            "Something went wrong. Please try again."
+        )
+    }
+
+    const handleCreate = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setAddError("")
+
+        if (!selectedRole) {
+            setAddError("Please select a role.")
+            return
+        }
+
+        if (!user?.subscriptionId) {
+            setAddError("Subscription information is missing. Please sign in again.")
+            return
+        }
+
+        if (addFormData.password !== addFormData.confirmPassword) {
+            setAddError("Password and confirm password do not match.")
+            return
+        }
+
+        if (selectedRole === "parent" && !addFormData.studentId) {
+            setAddError("Please select the linked student for this parent.")
+            return
+        }
+
+        try {
+            await createBranchStaffMember({
+                name: addFormData.name.trim(),
+                role: selectedRole,
+                email: addFormData.email.trim(),
+                phoneNumber: addFormData.phoneNumber.trim(),
+                password: addFormData.password,
+                subscriptionId: user.subscriptionId,
+                ...(selectedRole === "parent" ? { studentId: addFormData.studentId } : {}),
+            }).unwrap()
+
+            setIsAddDialogOpen(false)
+            resetAddForm()
+        } catch (error) {
+            setAddError(extractErrorMessage(error))
+        }
+    }
+
+    const handleEdit = (member: BranchStaff) => {
         setSelectedMember(member)
         setIsEditDialogOpen(true)
     }
 
-    const handleDelete = (member: typeof staffMembers[0]) => {
+    const handleView = (member: BranchStaff) => {
+        setSelectedMember(member)
+        setIsViewDialogOpen(true)
+    }
+
+    const handleDelete = (member: BranchStaff) => {
         setSelectedMember(member)
         setIsDeleteDialogOpen(true)
+    }
+
+    const handleUpdate = async (
+        id: string,
+        payload: {
+            name: string
+            email: string
+            phoneNumber: string
+        }
+    ) => {
+        try {
+            await updateBranchStaffMember({ id, ...payload }).unwrap()
+            return null
+        } catch (error) {
+            return extractErrorMessage(error)
+        }
+    }
+
+    const handleConfirmDelete = async () => {
+        if (!selectedMember) {
+            return
+        }
+
+        try {
+            await deleteBranchStaffMember(selectedMember.id).unwrap()
+            setIsDeleteDialogOpen(false)
+            setSelectedMember(null)
+        } catch (error) {
+            console.error("Failed to delete staff member", error)
+        }
     }
 
     return (
@@ -320,17 +226,23 @@ export default function BranchStaffManagementPage() {
                 <div className="mb-4 flex flex-col md:flex-row items-center justify-between gap-3">
                     <h2 className="text-lg font-semibold text-gray-900">Staff Directory</h2>
                     <div className="flex flex-col md:flex-row items-center gap-3">
-                        <Select value={roleFilter} onValueChange={setRoleFilter}>
+                        <Select
+                            value={roleFilter}
+                            onValueChange={(value) => {
+                                setRoleFilter(value)
+                                setCurrentPage(1)
+                            }}
+                        >
                             <SelectTrigger className="w-40">
                                 <SelectValue placeholder="All Roles" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All Roles</SelectItem>
-                                <SelectItem value="Student">Students</SelectItem>
-                                <SelectItem value="Teacher">Teachers</SelectItem>
-                                <SelectItem value="Parent">Parents</SelectItem>
-                                <SelectItem value="Bursar">Bursar</SelectItem>
-                                <SelectItem value="Nurse">Nurse</SelectItem>
+                                {roleOptions.map((role) => (
+                                    <SelectItem key={role.value} value={role.value}>
+                                        {role.label}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                         <div className="relative">
@@ -338,15 +250,26 @@ export default function BranchStaffManagementPage() {
                             <Input
                                 placeholder="Search staff..."
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value)
+                                    setCurrentPage(1)
+                                }}
                                 className="pl-10 w-64"
                             />
                         </div>
 
-                        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                        <Dialog
+                            open={isAddDialogOpen}
+                            onOpenChange={(open) => {
+                                setIsAddDialogOpen(open)
+                                if (!open) {
+                                    resetAddForm()
+                                }
+                            }}
+                        >
                             <DialogTrigger asChild>
                                 <Button
-                                    style={{ backgroundColor: 'rgba(16, 185, 129, 0.8)' }}
+                                    style={{ backgroundColor: "rgba(16, 185, 129, 0.8)" }}
                                     className="text-white"
                                 >
                                     <Plus className="mr-2 h-4 w-4" />
@@ -357,82 +280,131 @@ export default function BranchStaffManagementPage() {
                                 <DialogHeader>
                                     <DialogTitle>Add New Member</DialogTitle>
                                 </DialogHeader>
-                                <div className="space-y-4 py-4">
+                                <form className="space-y-4 py-4" onSubmit={handleCreate}>
+                                    {addError && (
+                                        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                                            {addError}
+                                        </div>
+                                    )}
+
                                     <div>
                                         <Label>Select Role</Label>
-                                        <Select value={selectedRole} onValueChange={setSelectedRole}>
+                                        <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as BranchStaffRole)}>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Choose role" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="student">Student</SelectItem>
-                                                <SelectItem value="teacher">Teacher</SelectItem>
-                                                <SelectItem value="parent">Parent</SelectItem>
-                                                <SelectItem value="bursar">Bursar</SelectItem>
-                                                <SelectItem value="nurse">Nurse</SelectItem>
+                                                {roleOptions.map((role) => (
+                                                    <SelectItem key={role.value} value={role.value}>
+                                                        {role.label}
+                                                    </SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                     </div>
                                     <div>
                                         <Label>Name</Label>
-                                        <Input placeholder="Enter full name" />
+                                        <Input
+                                            placeholder="Enter full name"
+                                            value={addFormData.name}
+                                            onChange={(e) => setAddFormData({ ...addFormData, name: e.target.value })}
+                                            required
+                                        />
                                     </div>
                                     <div>
-                                        <Label>User Name</Label>
-                                        <Input placeholder="e.g. Assistant Teacher, Prefect" />
+                                        <Label>User Name / Login ID</Label>
+                                        <Input
+                                            placeholder="Auto-generated after create"
+                                            value={addFormData.userName}
+                                            onChange={(e) => setAddFormData({ ...addFormData, userName: e.target.value })}
+                                            disabled
+                                        />
                                     </div>
                                     <div>
                                         <Label>Email</Label>
-                                        <Input type="email" placeholder="email@example.com" />
+                                        <Input
+                                            type="email"
+                                            placeholder="email@example.com"
+                                            value={addFormData.email}
+                                            onChange={(e) => setAddFormData({ ...addFormData, email: e.target.value })}
+                                            required
+                                        />
                                     </div>
                                     <div>
                                         <Label>Phone</Label>
-                                        <Input placeholder="+1 (555) 000-0000" />
+                                        <Input
+                                            placeholder="+1 (555) 000-0000"
+                                            value={addFormData.phoneNumber}
+                                            onChange={(e) => setAddFormData({ ...addFormData, phoneNumber: e.target.value })}
+                                            required
+                                        />
                                     </div>
                                     <div>
                                         <Label>Login Password</Label>
-                                        <Input type="text" placeholder="Set temporary password" />
+                                        <div className="relative">
+                                            <Input
+                                                type={showPassword ? "text" : "password"}
+                                                placeholder="Set temporary password"
+                                                value={addFormData.password}
+                                                onChange={(e) => setAddFormData({ ...addFormData, password: e.target.value })}
+                                                required
+                                                className="pr-10"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword((prev) => !prev)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                            >
+                                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            </button>
+                                        </div>
                                     </div>
-                                    {selectedRole === "student" && (
+                                    <div>
+                                        <Label>Confirm Password</Label>
+                                        <div className="relative">
+                                            <Input
+                                                type={showConfirmPassword ? "text" : "password"}
+                                                placeholder="Confirm temporary password"
+                                                value={addFormData.confirmPassword}
+                                                onChange={(e) => setAddFormData({ ...addFormData, confirmPassword: e.target.value })}
+                                                required
+                                                className="pr-10"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                            >
+                                                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {selectedRole === "parent" && (
                                         <div>
-                                            <Label>Grade</Label>
-                                            <Select>
+                                            <Label>Linked Student</Label>
+                                            <Select value={addFormData.studentId} onValueChange={(value) => setAddFormData({ ...addFormData, studentId: value })}>
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="Select grade" />
+                                                    <SelectValue placeholder="Select student" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="grade-8">Grade 8</SelectItem>
-                                                    <SelectItem value="grade-9">Grade 9</SelectItem>
-                                                    <SelectItem value="grade-10">Grade 10</SelectItem>
-                                                    <SelectItem value="grade-11">Grade 11</SelectItem>
-                                                    <SelectItem value="grade-12">Grade 12</SelectItem>
+                                                    {branchStudents.map((student) => (
+                                                        <SelectItem key={student.studentId} value={student.studentId}>
+                                                            {student.name} ({student.studentId})
+                                                        </SelectItem>
+                                                    ))}
                                                 </SelectContent>
                                             </Select>
                                         </div>
                                     )}
-                                    {selectedRole === "teacher" && (
-                                        <div>
-                                            <Label>Subject</Label>
-                                            <Input placeholder="Subject taught" />
-                                        </div>
-                                    )}
-                                    {selectedRole === "parent" && (
-                                        <div>
-                                            <Label>Student Name</Label>
-                                            <Input placeholder="Child's name" />
-                                        </div>
-                                    )}
-                                    {(selectedRole === "bursar" || selectedRole === "nurse") && (
-                                        <div>
-                                            <Label>Department</Label>
-                                            <Input placeholder="Department name" />
-                                        </div>
-                                    )}
-                                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
+                                    <Button
+                                        type="submit"
+                                        className="w-full bg-emerald-600 hover:bg-emerald-700"
+                                        disabled={isCreating}
+                                    >
                                         <UserPlus className="mr-2 h-4 w-4" />
-                                        Add Member
+                                        {isCreating ? "Adding..." : "Add Member"}
                                     </Button>
-                                </div>
+                                </form>
                             </DialogContent>
                         </Dialog>
                     </div>
@@ -440,11 +412,11 @@ export default function BranchStaffManagementPage() {
 
                 <div className="overflow-x-auto">
                     <table className="w-full">
-                        <thead style={{ backgroundColor: 'rgba(16, 185, 129, 0.8)' }} className="rounded-t-lg">
+                        <thead style={{ backgroundColor: "rgba(16, 185, 129, 0.8)" }} className="rounded-t-lg">
                             <tr>
                                 <th className="whitespace-nowrap rounded-tl-lg pb-3 pl-6 pt-3 text-left text-sm font-semibold text-white min-w-[200px]">Name</th>
                                 <th className="whitespace-nowrap pb-3 pt-3 text-left text-sm font-semibold text-white min-w-[120px]">Role</th>
-                                <th className="whitespace-nowrap pb-3 pt-3 text-left text-sm font-semibold text-white min-w-[120px]">User Name</th>
+                                <th className="whitespace-nowrap pb-3 pt-3 text-left text-sm font-semibold text-white min-w-[150px]">Login ID</th>
                                 <th className="whitespace-nowrap pb-3 pt-3 text-left text-sm font-semibold text-white min-w-[150px]">Details</th>
                                 <th className="whitespace-nowrap pb-3 pt-3 text-left text-sm font-semibold text-white min-w-[200px]">Contact</th>
                                 <th className="whitespace-nowrap pb-3 pt-3 text-left text-sm font-semibold text-white min-w-[150px]">Joined Date</th>
@@ -453,94 +425,103 @@ export default function BranchStaffManagementPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {currentMembers.map((member) => (
-                                <tr key={member.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                    <td className="whitespace-nowrap py-4 pl-6">
-                                        <p className="font-semibold text-gray-900">{member.name}</p>
-                                    </td>
-                                    <td className="whitespace-nowrap py-4">
-                                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getRoleBadgeColor(member.role)}`}>
-                                            {member.role}
-                                        </span>
-                                    </td>
-                                    <td className="whitespace-nowrap py-4">
-                                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getRoleBadgeColor(member.role)}`}>
-                                            {member.userName}
-                                        </span>
-                                    </td>
-                                    <td className="whitespace-nowrap py-4 text-sm text-gray-600">
-                                        {member.role === "Student" && member.grade}
-                                        {member.role === "Teacher" && member.subject}
-                                        {member.role === "Parent" && member.studentName}
-                                        {member.role === "Bursar" && member.department}
-                                        {member.role === "Nurse" && member.department}
-                                    </td>
-                                    <td className="whitespace-nowrap py-4">
-                                        <div className="flex flex-col gap-1">
-                                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                <Mail className="h-3 w-3" />
-                                                <span className="text-xs">{member.email}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                <Phone className="h-3 w-3" />
-                                                <span className="text-xs">{member.phone}</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="whitespace-nowrap py-4 text-sm text-gray-600">
-                                        {new Date(member.joinedDate).toLocaleDateString('en-US', {
-                                            year: 'numeric',
-                                            month: 'short',
-                                            day: 'numeric'
-                                        })}
-                                    </td>
-                                    <td className="whitespace-nowrap py-4">
-                                        <span className="inline-flex rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
-                                            {member.status}
-                                        </span>
-                                    </td>
-                                    <td className="whitespace-nowrap py-4 pr-6">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <button
-                                                onClick={() => handleView(member)}
-                                                className="rounded-lg p-2 text-blue-600 hover:bg-blue-50 transition-colors"
-                                                title="View Details"
-                                            >
-                                                <Eye className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleEdit(member)}
-                                                className="rounded-lg p-2 text-green-600 hover:bg-green-50 transition-colors"
-                                                title="Edit"
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(member)}
-                                                className="rounded-lg p-2 text-red-600 hover:bg-red-50 transition-colors"
-                                                title="Delete"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </div>
+                            {isStaffLoading ? (
+                                <tr>
+                                    <td colSpan={8} className="px-6 py-8 text-center text-sm text-gray-500">
+                                        Loading staff members...
                                     </td>
                                 </tr>
-                            ))}
+                            ) : currentMembers.length === 0 ? (
+                                <tr>
+                                    <td colSpan={8} className="px-6 py-8 text-center text-sm text-gray-500">
+                                        No staff members found yet.
+                                    </td>
+                                </tr>
+                            ) : (
+                                currentMembers.map((member) => (
+                                    <tr key={member.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                        <td className="whitespace-nowrap py-4 pl-6">
+                                            <p className="font-semibold text-gray-900">{member.name}</p>
+                                        </td>
+                                        <td className="whitespace-nowrap py-4">
+                                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getRoleBadgeColor(member.role)}`}>
+                                                {formatRole(member.role)}
+                                            </span>
+                                        </td>
+                                        <td className="whitespace-nowrap py-4 text-sm font-medium text-gray-700">
+                                            {member.generateId}
+                                        </td>
+                                        <td className="whitespace-nowrap py-4 text-sm text-gray-600">
+                                            {member.studentId ? `Linked student: ${member.studentId}` : `${formatRole(member.role)} account`}
+                                        </td>
+                                        <td className="whitespace-nowrap py-4">
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                    <Mail className="h-3 w-3" />
+                                                    <span className="text-xs">{member.email}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                    <Phone className="h-3 w-3" />
+                                                    <span className="text-xs">{member.phoneNumber}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="whitespace-nowrap py-4 text-sm text-gray-600">
+                                            {member.createdAt
+                                                ? new Date(member.createdAt).toLocaleDateString("en-US", {
+                                                    year: "numeric",
+                                                    month: "short",
+                                                    day: "numeric",
+                                                })
+                                                : "Not available"}
+                                        </td>
+                                        <td className="whitespace-nowrap py-4">
+                                            <span className="inline-flex rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
+                                                {member.status || "ACTIVE"}
+                                            </span>
+                                        </td>
+                                        <td className="whitespace-nowrap py-4 pr-6">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleView(member)}
+                                                    className="rounded-lg p-2 text-blue-600 hover:bg-blue-50 transition-colors"
+                                                    title="View Details"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleEdit(member)}
+                                                    className="rounded-lg p-2 text-green-600 hover:bg-green-50 transition-colors"
+                                                    title="Edit"
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(member)}
+                                                    className="rounded-lg p-2 text-red-600 hover:bg-red-50 transition-colors"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>
 
                 <TablePagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    totalItems={filteredMembers.length}
-                    itemsPerPage={itemsPerPage}
+                    currentPage={meta.page}
+                    totalPages={meta.totalPage || 1}
+                    totalItems={meta.total || 0}
+                    itemsPerPage={meta.limit || itemsPerPage}
                     onPageChange={setCurrentPage}
                     itemLabel="members"
                 />
             </div>
 
-            {/* Dialogs */}
             {selectedMember && (
                 <>
                     <ViewStaffDialog
@@ -552,12 +533,16 @@ export default function BranchStaffManagementPage() {
                         open={isEditDialogOpen}
                         onOpenChange={setIsEditDialogOpen}
                         member={selectedMember}
+                        isLoading={isUpdating}
+                        onSubmit={handleUpdate}
                     />
                     <DeleteStaffDialog
                         open={isDeleteDialogOpen}
                         onOpenChange={setIsDeleteDialogOpen}
                         memberName={selectedMember.name}
-                        memberRole={selectedMember.role}
+                        memberRole={formatRole(selectedMember.role)}
+                        onConfirm={handleConfirmDelete}
+                        isLoading={isDeleting}
                     />
                 </>
             )}

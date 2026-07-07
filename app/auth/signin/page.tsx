@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation"
 import { useLogInMutation } from "@/redux/features/auth/authApi"
 import { useAppDispatch } from "@/redux/hooks"
 import { setUser } from "@/redux/Slice/authSlice"
-import { normalizeFrontendUser } from "@/lib/auth-user"
+import { getDashboardRouteForRole, normalizeFrontendUser } from "@/lib/auth-user"
 
 export default function SignInPage() {
     const [showPassword, setShowPassword] = useState(false)
@@ -54,7 +54,21 @@ export default function SignInPage() {
 
             login(user)
             localStorage.setItem("registeredUser", JSON.stringify(user))
-            router.push("/auth/trial-offer")
+            const dashboardRoute = getDashboardRouteForRole(user.role)
+
+            if (
+                user.role === "student" ||
+                user.role === "teacher" ||
+                user.role === "parent" ||
+                user.role === "bursar" ||
+                user.role === "nurse" ||
+                user.role === "branch_admin" ||
+                user.role === "branch_manager"
+            ) {
+                router.push(dashboardRoute)
+            } else {
+                router.push("/auth/trial-offer")
+            }
         } catch (err) {
             const apiError = err as { data?: { message?: string; errorMessages?: Array<{ message?: string }> } }
             setError(

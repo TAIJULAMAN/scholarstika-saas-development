@@ -2,23 +2,13 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Mail, Phone, MapPin, Calendar, User } from "lucide-react"
-
-interface Manager {
-    id: number
-    name: string
-    email: string
-    phone: string
-    branchName: string
-    branchId: string
-    joinedDate: string
-    status: string
-}
+import { Mail, Phone, MapPin, Calendar } from "lucide-react"
+import { BranchAdmin } from "@/types/branch-admin"
 
 interface ViewManagerDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    manager: Manager
+    manager: BranchAdmin
 }
 
 export function ViewManagerDialog({ open, onOpenChange, manager }: ViewManagerDialogProps) {
@@ -33,10 +23,10 @@ export function ViewManagerDialog({ open, onOpenChange, manager }: ViewManagerDi
                     <div className="rounded-lg bg-green-50 p-6">
                         <div className="flex items-center gap-3 mb-4">
                             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-600 text-white text-2xl font-bold">
-                                {manager.name.charAt(0)}
+                                {manager.fullName.charAt(0)}
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-gray-900">{manager.name}</h3>
+                                <h3 className="text-xl font-bold text-gray-900">{manager.fullName}</h3>
                                 <p className="text-sm text-gray-600">Branch Admin</p>
                             </div>
                         </div>
@@ -56,7 +46,7 @@ export function ViewManagerDialog({ open, onOpenChange, manager }: ViewManagerDi
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-600">Email Address</p>
-                                    <p className="font-medium text-gray-900">{manager.email}</p>
+                                    <p className="font-medium text-gray-900">{manager.emailAddress}</p>
                                 </div>
                             </div>
                         </div>
@@ -68,7 +58,7 @@ export function ViewManagerDialog({ open, onOpenChange, manager }: ViewManagerDi
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-600">Phone Number</p>
-                                    <p className="font-medium text-gray-900">{manager.phone}</p>
+                                    <p className="font-medium text-gray-900">{manager.phoneNumber}</p>
                                 </div>
                             </div>
                         </div>
@@ -80,8 +70,7 @@ export function ViewManagerDialog({ open, onOpenChange, manager }: ViewManagerDi
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-600">Assigned Branch</p>
-                                    <p className="font-medium text-gray-900">{manager.branchName}</p>
-                                    <p className="text-xs text-gray-500">{manager.branchId}</p>
+                                    <p className="font-medium text-gray-900">{manager.assignBranch}</p>
                                 </div>
                             </div>
                         </div>
@@ -94,7 +83,7 @@ export function ViewManagerDialog({ open, onOpenChange, manager }: ViewManagerDi
                                 <div>
                                     <p className="text-sm text-gray-600">Joined Date</p>
                                     <p className="font-medium text-gray-900">
-                                        {new Date(manager.joinedDate).toLocaleDateString('en-US', {
+                                        {new Date(manager.joinDate).toLocaleDateString('en-US', {
                                             year: 'numeric',
                                             month: 'long',
                                             day: 'numeric'
