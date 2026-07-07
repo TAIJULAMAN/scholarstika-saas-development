@@ -1,5 +1,5 @@
 const backendUrl =
-  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") || "http://localhost:5004";
+  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") || "https://bedroom-journalism-hollow-tmp.trycloudflare.com";
 
 export const imgUrl = backendUrl;
 export const url = `${backendUrl}/api/v1/`;
