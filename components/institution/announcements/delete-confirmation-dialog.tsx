@@ -2,17 +2,25 @@
 
 import { X, AlertTriangle } from "lucide-react"
 
+import { useDeleteAnnouncementMutation } from "@/redux/features/announcements/announcementsApi"
+
 interface DeleteConfirmationDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     announcementTitle: string
+    announcementId: string
 }
 
-export function DeleteConfirmationDialog({ open, onOpenChange, announcementTitle }: DeleteConfirmationDialogProps) {
-    const handleDelete = () => {
-        // In real app, this would call an API to delete the announcement
-        console.log("Deleting announcement:", announcementTitle)
-        onOpenChange(false)
+export function DeleteConfirmationDialog({ open, onOpenChange, announcementTitle, announcementId }: DeleteConfirmationDialogProps) {
+    const [deleteAnnouncement, { isLoading }] = useDeleteAnnouncementMutation()
+    const handleDelete = async () => {
+        try {
+            await deleteAnnouncement(announcementId).unwrap()
+            onOpenChange(false)
+        } catch (error: any) {
+            const errorMessage = error?.data?.message || error?.error || "Unknown error occurred"
+            alert(`Failed to delete: ${errorMessage}`)
+        }
     }
 
     if (!open) return null
@@ -52,9 +60,10 @@ export function DeleteConfirmationDialog({ open, onOpenChange, announcementTitle
                     </button>
                     <button
                         onClick={handleDelete}
-                        className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
+                        disabled={isLoading}
+                        className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
                     >
-                        Delete
+                        {isLoading ? "Deleting..." : "Delete"}
                     </button>
                 </div>
             </div>

@@ -44,7 +44,6 @@ const menuItems = [
     { icon: MessageSquare, label: "Messages", href: "/institution/messages" },
     { icon: HelpCircle, label: "Support", href: "/institution/support" },
     { icon: UserCog, label: "Admin Management", href: "/institution/staff-management" },
-    { icon: Handshake, label: "Affiliates", href: "/institution/affiliates" },
 ]
 
 const academicsMenuItems = [

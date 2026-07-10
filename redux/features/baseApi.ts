@@ -21,7 +21,7 @@ export const baseApi = createApi({
       }
 
       if (token) {
-        const authValue = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+        const authValue = token.startsWith("Bearer ") ? token : `${token}`;
         headers.set("Authorization", authValue);
       }
       return headers;
@@ -41,5 +41,6 @@ export const baseApi = createApi({
     "team",
     "branchManagement",
     "branchUsers",
+    "announcements",
   ],
 });
