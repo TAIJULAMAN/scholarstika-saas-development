@@ -3,13 +3,14 @@
 import { useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus } from "lucide-react"
-import { announcements, type Announcement } from "@/data/announcements"
+import { type Announcement } from "@/data/announcements"
 import { ViewAnnouncementDialog } from "@/components/institution/announcements/view-announcement-dialog"
 import { EditAnnouncementDialog } from "@/components/institution/announcements/edit-announcement-dialog"
 import { DeleteConfirmationDialog } from "@/components/institution/announcements/delete-confirmation-dialog"
 import { AddAnnouncementDialog } from "@/components/institution/announcements/add-announcement-dialog"
 import { TablePagination } from "@/components/common/table-pagination"
 import { AnnouncementsTable } from "@/components/institution/announcements/announcements-table"
+import { useGetAllAnnouncementsQuery } from "@/redux/features/announcements/announcementsApi"
 
 export default function AnnouncementsPage() {
     const [statusFilter, setStatusFilter] = useState("all")
@@ -19,12 +20,23 @@ export default function AnnouncementsPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null)
 
+    const { data: announcementsData, isLoading, isError } = useGetAllAnnouncementsQuery()
+    const fetchedAnnouncements: Announcement[] = (announcementsData?.data?.data || []).map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        date: new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        branches: item.branches || "All Branches",
+        audience: item.audience || [],
+        status: item.isDelete ? "Archived" : "Active"
+    }))
+
     const [currentPage, setCurrentPage] = useState(1)
-    const itemsPerPage = 8
-    const totalPages = Math.ceil(announcements.length / itemsPerPage)
+    const itemsPerPage = 10
+    const totalPages = Math.ceil(fetchedAnnouncements.length / itemsPerPage)
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
-    const currentAnnouncements = announcements.slice(startIndex, endIndex)
+    const currentAnnouncements = fetchedAnnouncements.slice(startIndex, endIndex)
 
     const handleView = (announcement: Announcement) => {
         setSelectedAnnouncement(announcement)
@@ -70,22 +82,30 @@ export default function AnnouncementsPage() {
                 </div>
 
 
-                <AnnouncementsTable
-                    announcements={currentAnnouncements}
-                    onView={handleView}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                />
+                {isLoading ? (
+                    <div className="py-10 text-center text-gray-500">Loading announcements...</div>
+                ) : isError ? (
+                    <div className="py-10 text-center text-red-500">Failed to load announcements</div>
+                ) : (
+                    <>
+                        <AnnouncementsTable
+                            announcements={currentAnnouncements}
+                            onView={handleView}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                        />
 
-                {/* Pagination */}
-                <TablePagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    totalItems={announcements.length}
-                    itemsPerPage={itemsPerPage}
-                    onPageChange={setCurrentPage}
-                    itemLabel="announcements"
-                />
+                        {/* Pagination */}
+                        <TablePagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            totalItems={fetchedAnnouncements.length}
+                            itemsPerPage={itemsPerPage}
+                            onPageChange={setCurrentPage}
+                            itemLabel="announcements"
+                        />
+                    </>
+                )}
             </div>
 
             {/* Dialogs */}
@@ -106,6 +126,7 @@ export default function AnnouncementsPage() {
                         open={isDeleteDialogOpen}
                         onOpenChange={setIsDeleteDialogOpen}
                         announcementTitle={selectedAnnouncement.title}
+                        announcementId={selectedAnnouncement.id}
                     />
                 </>
             )}
