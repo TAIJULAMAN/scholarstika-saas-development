@@ -4,7 +4,20 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, MapPin } from "lucide-react"
+import { useGetAllSchoolListQuery } from "@/redux/features/subscription/subscriptionApi"
+import { imgUrl } from "@/config/envConfig"
+import ReactCountryFlag from "react-country-flag"
+
+interface Institution {
+    name: string;
+    location: string;
+    country: string;
+    type: string;
+    countryCode: string;
+    description: string;
+    image: string;
+}
 
 export function TopInstitutionsSection() {
     const countries = [
@@ -19,98 +32,28 @@ export function TopInstitutionsSection() {
         { name: "Germany", count: 4, code: "de" },
     ]
 
-    const institutions = [
-        {
-            name: "University of Melbourne",
-            location: "Melbourne, Victoria",
-            country: "Australia",
-            type: "University",
-            countryCode: "au",
-            description: "The University of Melbourne is one of Australia's oldest and most prestigious universities, founded in 1853....",
-            image: "/university-campus.png",
-        },
-        {
-            name: "University of Paris-Saclay",
-            location: "Paris-Saclay, France",
-            country: "France",
-            type: "College",
-            countryCode: "fr",
-            description: "University of Paris-Saclay is a leading French research university known for its excellence ...",
-            image: "/university-campus.png",
-        },
-        {
-            name: "University of Cambridge",
-            location: "Cambridge",
-            country: "England",
-            type: "University",
-            countryCode: "gb-eng",
-            description: "The University of Cambridge, founded in 1209, is one of the oldest and most prestigious universities in the world...",
-            image: "/university-campus.png",
-        },
-        {
-            name: "Aix-Marseille University",
-            location: "Marseille, France",
-            country: "France",
-            type: "College",
-            countryCode: "fr",
-            description: "Aix-Marseille University, located in the south of France, is one of the largest universities...",
-            image: "/university-campus.png",
-        },
-        {
-            name: "Peking University",
-            location: "Beijing, China",
-            country: "China",
-            type: "University",
-            countryCode: "cn",
-            description: "Peking University is a leading research university in China, known for its academic excellence and beautiful campus...",
-            image: "/university-campus.png",
-        },
-        {
-            name: "University of Copenhagen",
-            location: "Copenhagen, Denmark",
-            country: "Denmark",
-            type: "University",
-            countryCode: "dk",
-            description: "The University of Copenhagen is the oldest university in Denmark and one of the top universities in Northern Europe...",
-            image: "/university-campus.png",
-        },
-        {
-            name: "KU Leuven",
-            location: "Leuven, Belgium",
-            country: "Belgium",
-            type: "University",
-            countryCode: "be",
-            description: "KU Leuven is Belgium's largest and highest-ranked university, with a strong tradition of research and innovation...",
-            image: "/university-campus.png",
-        },
-        {
-            name: "University of Lisbon",
-            location: "Lisbon, Portugal",
-            country: "Portugal",
-            type: "University",
-            countryCode: "pt",
-            description: "The University of Lisbon is the largest university in Portugal, offering a wide range of academic programs...",
-            image: "/university-campus.png",
-        },
-        {
-            name: "Technical University of Munich",
-            location: "Munich, Germany",
-            country: "Germany",
-            type: "University",
-            countryCode: "de",
-            description: "TUM is one of Europe's top universities, specializing in engineering, technology, medicine, and applied sciences...",
-            image: "/university-campus.png",
-        },
-        {
-            name: "University of Dhaka",
-            location: "Dhaka, Bangladesh",
-            country: "Bangladesh",
-            type: "University",
-            countryCode: "bd",
-            description: "The University of Dhaka is the oldest university in Bangladesh and a leading center of higher education in South Asia...",
-            image: "/university-campus.png",
-        },
-    ]
+    const { data: schoolsResponse, isLoading } = useGetAllSchoolListQuery({});
+    const fetchedSchools = schoolsResponse?.data?.data || [];
+
+    const institutions: Institution[] = fetchedSchools.map((school: any) => ({
+        name: school.schoolName,
+        location: `${school.city}, ${school.country}`,
+        country: school.country,
+        type: school.schoolType ? school.schoolType.replace(/_/g, ' ') : '',
+        countryCode: countries.find(c => c.name.toLowerCase() === school.country.toLowerCase())?.code || "",
+        description: school.area ? `${school.area} area` : '',
+        image: school.schoolPhoto ? `${imgUrl}/${school.schoolPhoto}` : "/university-campus.png",
+    }));
+
+    if (isLoading) {
+        return (
+            <section className="bg-emerald-600 py-12 text-white md:py-16">
+                <div className="container mx-auto px-4 sm:px-6 md:px-8 lg:px-12 text-center">
+                    <p className="text-xl">Loading institutions...</p>
+                </div>
+            </section>
+        );
+    }
 
     return (
         <section className="bg-emerald-600 py-12 text-white md:py-16">
@@ -141,6 +84,7 @@ export function TopInstitutionsSection() {
                                     />
                                 </div>
                                 <div className="text-left">
+
                                     <p className="text-xs font-bold text-gray-900 sm:text-sm">{country.name}</p>
                                     <p className="text-[10px] text-gray-600 sm:text-xs">{country.count} Institutions</p>
                                 </div>
@@ -234,15 +178,21 @@ export function TopInstitutionsSection() {
                                 <CardContent className="p-4 sm:p-5 md:p-6">
                                     {/* Location Badge */}
                                     <div className="mb-3 flex items-center gap-2">
-                                        <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center overflow-hidden rounded-full ring-2 ring-gray-200">
-                                            <Image
-                                                src={`https://flagcdn.com/w40/${institution.countryCode}.png`}
-                                                alt={`${institution.country} flag`}
-                                                width={24}
-                                                height={24}
-                                                className="h-full w-full object-cover"
-                                                unoptimized
-                                            />
+                                        <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center overflow-hidden rounded-full ring-2 ring-gray-200 bg-gray-100">
+                                            {institution.countryCode ? (
+                                                <ReactCountryFlag
+                                                    countryCode={institution.countryCode === "gb-eng" ? "GB" : institution.countryCode.toUpperCase()}
+                                                    svg
+                                                    style={{
+                                                        width: '24px',
+                                                        height: '24px',
+                                                        objectFit: 'cover'
+                                                    }}
+                                                    title={institution.country}
+                                                />
+                                            ) : (
+                                                <MapPin className="h-4 w-4 text-emerald-600" />
+                                            )}
                                         </div>
                                         <span className="text-sm font-medium text-gray-600">{institution.location}</span>
                                     </div>
@@ -298,15 +248,19 @@ export function TopInstitutionsSection() {
                                 <CardContent className="p-6">
                                     {/* Location Badge */}
                                     <div className="mb-3 flex items-center gap-2">
-                                        <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center overflow-hidden rounded-full ring-2 ring-gray-200">
-                                            <Image
-                                                src={`https://flagcdn.com/w40/${institution.countryCode}.png`}
-                                                alt={`${institution.country} flag`}
-                                                width={24}
-                                                height={24}
-                                                className="h-full w-full object-cover"
-                                                unoptimized
-                                            />
+                                        <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center overflow-hidden rounded-full ring-2 ring-gray-200 bg-gray-100">
+                                            {institution.countryCode ? (
+                                                <Image
+                                                    src={`https://flagcdn.com/w40/${institution.countryCode}.png`}
+                                                    alt={`${institution.country} flag`}
+                                                    width={24}
+                                                    height={24}
+                                                    className="h-full w-full object-cover"
+                                                    unoptimized
+                                                />
+                                            ) : (
+                                                <MapPin className="h-4 w-4 text-emerald-600" />
+                                            )}
                                         </div>
                                         <span className="text-sm font-medium text-gray-600">{institution.location}</span>
                                     </div>

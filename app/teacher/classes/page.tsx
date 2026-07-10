@@ -1,76 +1,40 @@
 "use client"
-
 import { Search, Download, Share2, Play, AlertCircle, Loader2, ChevronLeft, ChevronRight } from "lucide-react"
-const recordings = [
-    {
-        id: 1,
-        title: "Advanced Calculus - Derivatives",
-        subject: "Mathematics",
-        grade: "Grade 12",
-        date: "Dec 8, 2024",
-        duration: "45 min",
-        status: "Available",
-        statusColor: "bg-emerald-100 text-emerald-700",
-        videoUrl: "#",
-    },
-    {
-        id: 2,
-        title: "Quantum Physics Basics",
-        subject: "Physics",
-        grade: "Grade 11",
-        date: "Dec 7, 2024",
-        duration: "38 min",
-        status: "Processing",
-        statusColor: "bg-amber-100 text-amber-700",
-        videoUrl: "#",
-    },
-    {
-        id: 3,
-        title: "Organic Chemistry - Reactions",
-        subject: "Chemistry",
-        grade: "Grade 12",
-        date: "Dec 6, 2024",
-        duration: "52 min",
-        status: "Available",
-        statusColor: "bg-emerald-100 text-emerald-700",
-        videoUrl: "#",
-    },
-    {
-        id: 4,
-        title: "Cell Biology - Mitosis",
-        subject: "Biology",
-        grade: "Grade 10",
-        date: "Dec 5, 2024",
-        duration: "41 min",
-        status: "Failed",
-        statusColor: "bg-red-100 text-red-700",
-        videoUrl: "#",
-    },
-    {
-        id: 5,
-        title: "Trigonometry Applications",
-        subject: "Mathematics",
-        grade: "Grade 11",
-        date: "Dec 4, 2024",
-        duration: "45 min",
-        status: "Available",
-        statusColor: "bg-emerald-100 text-emerald-700",
-        videoUrl: "#",
-    },
-    {
-        id: 6,
-        title: "Electromagnetic Waves",
-        subject: "Physics",
-        grade: "Grade 12",
-        date: "Dec 4, 2024",
-        duration: "45 min",
-        status: "Available",
-        statusColor: "bg-emerald-100 text-emerald-700",
-        videoUrl: "#",
-    },
-]
+import { useGetTeacherRecordingsQuery } from "@/redux/features/teacher/teacherApi"
+
+type Recording = {
+    id: string;
+    title: string;
+    subject: string;
+    grade: string;
+    date: string;
+    duration: string;
+    status: string;
+    statusColor: string;
+    videoUrl: string;
+}
+
 
 export default function TeacherClassesPage() {
+    const { data: recordingsData, isLoading } = useGetTeacherRecordingsQuery({});
+    const fetchedRecordings = Array.isArray(recordingsData?.data) ? recordingsData.data : (recordingsData?.data?.data || []);
+
+    const recordings: Recording[] = fetchedRecordings.map((r: any) => ({
+        id: r.id,
+        title: `${r.classDistribution?.assignableSubject || "Class"} Recording`,
+        subject: r.classDistribution?.assignableSubject || "Unknown",
+        grade: r.classDistribution?.classLevel || "Unknown",
+        date: new Date(r.createdAt).toLocaleDateString(),
+        duration: r.classDistribution?.time || "N/A",
+        status: r.recordingUrl ? "Available" : "Processing",
+        statusColor: r.recordingUrl ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700",
+        videoUrl: r.recordingUrl || "#",
+    }));
+
+    if (isLoading) {
+        return <div className="p-6 text-center text-lg font-medium text-emerald-600">Loading recordings...</div>;
+    }
+
     return (
         <div className="space-y-6">
             <div className="rounded-xl bg-emerald-500 p-6 text-white shadow-lg">
@@ -116,10 +80,10 @@ export default function TeacherClassesPage() {
 
                         <div className="flex items-center justify-between border-t border-gray-50 pt-4">
                             {recording.status === "Available" ? (
-                                <button className="flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors">
+                                <a href={recording.videoUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors">
                                     <Play className="h-4 w-4 fill-current" />
                                     View Recording
-                                </button>
+                                </a>
                             ) : recording.status === "Processing" ? (
                                 <button disabled className="flex cursor-not-allowed items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-400">
                                     <Loader2 className="h-4 w-4 animate-spin" />

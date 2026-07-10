@@ -3,30 +3,7 @@
 import { Clock, Plus, FileText, CheckSquare, Calendar, ChevronRight } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { DashboardAnnouncements } from "@/components/common/dashboard-announcements"
-
-const schedule = [
-    {
-        subject: "Mathematics",
-        grade: "Grade 10-A",
-        time: "08:00 - 09:00",
-        bg: "bg-emerald-50",
-        text: "text-emerald-500",
-    },
-    {
-        subject: "Physics",
-        grade: "Grade 11-B",
-        time: "09:30 - 10:30",
-        bg: "bg-emerald-50",
-        text: "text-emerald-500",
-    },
-    {
-        subject: "Chemistry",
-        grade: "Grade 10-C",
-        time: "11:00 - 12:00",
-        bg: "bg-emerald-50",
-        text: "text-emerald-500",
-    },
-]
+import { useGetTeacherScheduleQuery } from "@/redux/features/teacher/teacherApi"
 
 const assignments = [
     {
@@ -55,6 +32,17 @@ const assignments = [
 export default function TeacherDashboardPage() {
     const router = useRouter()
 
+    const { data: scheduleData, isLoading: isScheduleLoading } = useGetTeacherScheduleQuery({});
+    
+    const rawSchedule = scheduleData?.data?.data || [];
+    const schedule = rawSchedule.map((item: any) => ({
+        subject: item.assignableSubject || "N/A",
+        grade: item.classLevel || "N/A",
+        time: item.time || "N/A",
+        bg: "bg-emerald-50",
+        text: "text-emerald-500",
+    }));
+
     return (
         <div className="space-y-6">
             {/* Header Area */}
@@ -77,18 +65,24 @@ export default function TeacherDashboardPage() {
                         </div>
                     </div>
                     <div className="space-y-3">
-                        {schedule.map((item, index) => (
-                            <div
-                                key={index}
-                                className={`flex items-center justify-between rounded-lg p-4 transition-colors hover:opacity-80 ${item.bg}`}
-                            >
-                                <div>
-                                    <h3 className="font-bold text-gray-900">{item.subject}</h3>
-                                    <p className="text-sm text-gray-500">{item.grade}</p>
+                        {isScheduleLoading ? (
+                            <div className="text-sm text-gray-500">Loading schedule...</div>
+                        ) : schedule.length > 0 ? (
+                            schedule.map((item: any, index: number) => (
+                                <div
+                                    key={index}
+                                    className={`flex items-center justify-between rounded-lg p-4 transition-colors hover:opacity-80 ${item.bg}`}
+                                >
+                                    <div>
+                                        <h3 className="font-bold text-gray-900">{item.subject}</h3>
+                                        <p className="text-sm text-gray-500">{item.grade}</p>
+                                    </div>
+                                    <div className={`font-medium ${item.text}`}>{item.time}</div>
                                 </div>
-                                <div className={`font-medium ${item.text}`}>{item.time}</div>
-                            </div>
-                        ))}
+                            ))
+                        ) : (
+                            <div className="text-sm text-gray-500">No classes scheduled for today.</div>
+                        )}
                     </div>
                 </div>
 
