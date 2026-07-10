@@ -9,12 +9,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Calendar, FileText, Users, AlertCircle } from "lucide-react"
 import { useGetSpecificTeacherAssignmentsQuery, useUpdateTeacherAssignmentMutation } from "@/redux/features/assignments/assignmentsApi"
+import { useGetTeacherScheduleQuery } from "@/redux/features/teacher/teacherApi"
 import { toast } from "sonner"
 
 type Assignment = {
     id: string;
     title: string;
     class: string;
+    classId: string;
     dueDate: string;
     submissions: number;
     totalStudents: number;
@@ -53,8 +55,12 @@ export default function TeacherAssignmentsPage() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [isViewModalOpen, setIsViewModalOpen] = useState(false)
     const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
+    const [editForm, setEditForm] = useState({ title: '', classId: '', type: '', dueDate: '', description: '' });
 
     const [updateTeacherAssignment, { isLoading: isUpdating }] = useUpdateTeacherAssignmentMutation();
+
+    const { data: scheduleData } = useGetTeacherScheduleQuery({});
+    const fetchedClasses = scheduleData?.data?.data || [];
 
     const { data: assignmentsData, isLoading } = useGetSpecificTeacherAssignmentsQuery({});
     const fetchedAssignments = assignmentsData?.data?.data || [];
@@ -63,6 +69,7 @@ export default function TeacherAssignmentsPage() {
         id: a.id,
         title: a.assignmentTitle,
         class: a.classDistributions?.classLevel || "N/A",
+        classId: a.classDistributions?.id || "",
         dueDate: a.assignmentDueDate,
         submissions: 0,
         totalStudents: 100,
@@ -79,12 +86,12 @@ export default function TeacherAssignmentsPage() {
         e.preventDefault();
         if (!selectedAssignment) return;
 
-        const formData = new FormData(e.currentTarget);
         const data = {
-            assignmentTitle: formData.get("editTitle"),
-            assignmentType: formData.get("editType"),
-            assignmentDueDate: formData.get("editDueDate") ? new Date(formData.get("editDueDate") as string).toISOString() : undefined,
-            description: formData.get("editDescription"),
+            assignmentTitle: editForm.title,
+            assignmentType: editForm.type,
+            assignmentDueDate: editForm.dueDate ? new Date(editForm.dueDate).toISOString() : undefined,
+            description: editForm.description,
+            // classLevelId: editForm.classId // Include if API expects class updates
         };
 
         try {
@@ -98,6 +105,13 @@ export default function TeacherAssignmentsPage() {
 
     const handleEdit = (assignment: Assignment) => {
         setSelectedAssignment(assignment)
+        setEditForm({
+            title: assignment.title,
+            classId: assignment.classId,
+            type: assignment.type || "Homework",
+            dueDate: assignment.dueDate ? new Date(assignment.dueDate).toISOString().split('T')[0] : '',
+            description: assignment.description || ""
+        })
         setIsEditModalOpen(true)
     }
 
@@ -248,11 +262,11 @@ export default function TeacherAssignmentsPage() {
                                         <SelectValue placeholder="Select class" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="grade9a">Grade 9-A</SelectItem>
-                                        <SelectItem value="grade10a">Grade 10-A</SelectItem>
-                                        <SelectItem value="grade11a">Grade 11-A</SelectItem>
-                                        <SelectItem value="grade11b">Grade 11-B</SelectItem>
-                                        <SelectItem value="grade12a">Grade 12-A</SelectItem>
+                                        {fetchedClasses.map((cls: any) => (
+                                            <SelectItem key={cls.id} value={cls.id}>
+                                                {cls.classLevel} - {cls.assignableSubject}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -301,29 +315,29 @@ export default function TeacherAssignmentsPage() {
                         <div className="space-y-4 py-4">
                             <div className="space-y-2">
                                 <Label htmlFor="editTitle">Assignment Title</Label>
-                                <Input id="editTitle" name="editTitle" defaultValue={selectedAssignment?.title} />
+                                <Input id="editTitle" value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="editClass">Class</Label>
-                                    <Select defaultValue={selectedAssignment?.class} name="editClass">
+                                    <Select value={editForm.classId} onValueChange={val => setEditForm({...editForm, classId: val})}>
                                         <SelectTrigger>
-                                            <SelectValue />
+                                            <SelectValue placeholder="Select Class" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="Grade 9-A">Grade 9-A</SelectItem>
-                                            <SelectItem value="Grade 10-A">Grade 10-A</SelectItem>
-                                            <SelectItem value="Grade 11-A">Grade 11-A</SelectItem>
-                                            <SelectItem value="Grade 11-B">Grade 11-B</SelectItem>
-                                            <SelectItem value="Grade 12-A">Grade 12-A</SelectItem>
+                                            {fetchedClasses.map((cls: any) => (
+                                                <SelectItem key={cls.id} value={cls.id}>
+                                                    {cls.classLevel} - {cls.assignableSubject}
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="editType">Type</Label>
-                                    <Select defaultValue={selectedAssignment?.type} name="editType">
+                                    <Select value={editForm.type} onValueChange={val => setEditForm({...editForm, type: val})}>
                                         <SelectTrigger>
-                                            <SelectValue />
+                                            <SelectValue placeholder="Select Type" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="Homework">Homework</SelectItem>
@@ -336,11 +350,11 @@ export default function TeacherAssignmentsPage() {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="editDueDate">Due Date</Label>
-                                <Input id="editDueDate" name="editDueDate" type="date" defaultValue={selectedAssignment?.dueDate ? new Date(selectedAssignment.dueDate).toISOString().split('T')[0] : ''} />
+                                <Input id="editDueDate" type="date" value={editForm.dueDate} onChange={e => setEditForm({...editForm, dueDate: e.target.value})} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="editDescription">Description</Label>
-                                <Textarea id="editDescription" name="editDescription" defaultValue={selectedAssignment?.description} rows={4} />
+                                <Textarea id="editDescription" value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} rows={4} />
                             </div>
                         </div>
                         <DialogFooter>

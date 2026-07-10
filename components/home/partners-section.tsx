@@ -30,7 +30,7 @@ export function PartnersSection() {
   ];
 
   return (
-    <section className="relative z-999 bg-white border-t-2 border-white rounded-tl-xl rounded-tr-xl py-10 md:py-16 -mt-10">
+    <section className="relative bg-white border-t-2 border-white rounded-tl-xl rounded-tr-xl py-10 md:py-16 -mt-10">
       <div className="container mx-auto px-5 lg:px-0">
         {/* Heading */}
         <h2 className="mb-10 text-center text-lg font-medium text-gray-600 md:mb-12 md:text-xl">

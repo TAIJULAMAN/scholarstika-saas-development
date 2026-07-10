@@ -1,9 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { X, User, Upload } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useUpdateMyProfileMutation } from "@/redux/features/auth/authApi"
+import { toast } from "sonner"
 
 interface EditProfileDialogProps {
     open: boolean
@@ -20,6 +22,10 @@ interface EditProfileDialogProps {
 }
 
 export function EditProfileDialog({ open, onOpenChange, teacherData }: EditProfileDialogProps) {
+    const [updateMyProfile, { isLoading }] = useUpdateMyProfileMutation()
+    const fileInputRef = useRef<HTMLInputElement>(null)
+    const [profileImage, setProfileImage] = useState<File | null>(null)
+    
     const [formData, setFormData] = useState({
         name: teacherData.name,
         email: teacherData.email,
@@ -29,10 +35,44 @@ export function EditProfileDialog({ open, onOpenChange, teacherData }: EditProfi
         qualification: teacherData.qualification,
     })
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setProfileImage(e.target.files[0])
+        }
+    }
+
+    const previewUrl = profileImage ? URL.createObjectURL(profileImage) : teacherData.avatar
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        console.log("Updating profile:", formData)
-        onOpenChange(false)
+        
+        const payload = new FormData()
+        
+        // The backend only accepts name, phoneNumber, and address in the data object
+        const dataPayload = {
+            name: formData.name,
+            phoneNumber: formData.phone,
+            address: formData.address,
+        }
+        
+        payload.append('data', JSON.stringify(dataPayload))
+        
+        if (profileImage) {
+            payload.append('profileImage', profileImage)
+        }
+
+        try {
+            const res = await updateMyProfile(payload).unwrap()
+            console.log("Update profile response:", res)
+            if (res?.success || res?.status) {
+                toast.success(res.message || "Profile updated successfully")
+                onOpenChange(false)
+            } else {
+                toast.error(res.message || "Failed to update profile")
+            }
+        } catch (error: any) {
+            toast.error(error?.data?.message || error?.message || "Failed to update profile")
+        }
     }
 
     if (!open) return null
@@ -48,6 +88,7 @@ export function EditProfileDialog({ open, onOpenChange, teacherData }: EditProfi
                     <button
                         onClick={() => onOpenChange(false)}
                         className="rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                        disabled={isLoading}
                     >
                         <X className="h-5 w-5" />
                     </button>
@@ -58,14 +99,23 @@ export function EditProfileDialog({ open, onOpenChange, teacherData }: EditProfi
                         <label className="mb-2 block text-sm font-medium text-gray-700">Profile Picture</label>
                         <div className="flex items-center gap-4">
                             <Avatar className="h-16 w-16 border-2 border-gray-200">
-                                <AvatarImage src={teacherData.avatar} />
-                                <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-600 text-xl text-white">
-                                    {teacherData.name.split(' ').map(n => n[0]).join('')}
+                                <AvatarImage src={previewUrl} />
+                                <AvatarFallback className="bg-linear-to-br from-emerald-500 to-teal-600 text-xl text-white">
+                                    {formData.name.split(' ').map(n => n[0]).join('')}
                                 </AvatarFallback>
                             </Avatar>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                ref={fileInputRef}
+                                onChange={handleImageChange}
+                            />
                             <button
                                 type="button"
+                                onClick={() => fileInputRef.current?.click()}
                                 className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                disabled={isLoading}
                             >
                                 <Upload className="mr-2 inline h-4 w-4" />
                                 Change Photo
@@ -81,6 +131,7 @@ export function EditProfileDialog({ open, onOpenChange, teacherData }: EditProfi
                             required
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            disabled={isLoading}
                         />
                     </div>
 
@@ -93,6 +144,7 @@ export function EditProfileDialog({ open, onOpenChange, teacherData }: EditProfi
                             type="email"
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            disabled={isLoading}
                         />
                     </div>
 
@@ -105,6 +157,7 @@ export function EditProfileDialog({ open, onOpenChange, teacherData }: EditProfi
                             type="tel"
                             value={formData.phone}
                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            disabled={isLoading}
                         />
                     </div>
 
@@ -115,6 +168,8 @@ export function EditProfileDialog({ open, onOpenChange, teacherData }: EditProfi
                         <Input
                             value={formData.subject}
                             onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                            placeholder="e.g. Mathematics, Physics"
+                            disabled={isLoading}
                         />
                     </div>
 
@@ -125,6 +180,7 @@ export function EditProfileDialog({ open, onOpenChange, teacherData }: EditProfi
                         <Input
                             value={formData.qualification}
                             onChange={(e) => setFormData({ ...formData, qualification: e.target.value })}
+                            disabled={isLoading}
                         />
                     </div>
 
@@ -136,6 +192,7 @@ export function EditProfileDialog({ open, onOpenChange, teacherData }: EditProfi
                             required
                             value={formData.address}
                             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                            disabled={isLoading}
                         />
                     </div>
 
@@ -143,15 +200,17 @@ export function EditProfileDialog({ open, onOpenChange, teacherData }: EditProfi
                         <button
                             type="button"
                             onClick={() => onOpenChange(false)}
-                            className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                            className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+                            disabled={isLoading}
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+                            className="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-70 flex items-center justify-center"
+                            disabled={isLoading}
                         >
-                            Save Changes
+                            {isLoading ? "Saving..." : "Save Changes"}
                         </button>
                     </div>
                 </form>

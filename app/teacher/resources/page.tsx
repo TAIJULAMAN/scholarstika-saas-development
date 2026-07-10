@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { FileText, Play, Link as LinkIcon, Download, Eye, Pencil, Trash2, Plus, File } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
@@ -9,80 +9,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 
-const materials = [
-    {
-        id: 1,
-        name: "Introduction to Algorithms",
-        type: "PDF",
-        uploaded: "Jan 15, 2024",
-        size: "2.4 MB",
-        icon: FileText,
-        iconColor: "text-red-600",
-        bgColor: "bg-red-50",
-        typeBadge: "bg-red-100 text-red-700",
-        description: "Comprehensive guide to algorithm design and analysis"
-    },
-    {
-        id: 2,
-        name: "Data Structures Lecture Notes",
-        type: "DOCX",
-        uploaded: "Jan 12, 2024",
-        size: "1.8 MB",
-        icon: FileText,
-        iconColor: "text-blue-600",
-        bgColor: "bg-blue-50",
-        typeBadge: "bg-blue-100 text-blue-700",
-        description: "Complete lecture notes covering all data structures"
-    },
-    {
-        id: 3,
-        name: "Programming Tutorial Video",
-        type: "MP4",
-        uploaded: "Jan 10, 2024",
-        size: "45.2 MB",
-        icon: Play,
-        iconColor: "text-purple-600",
-        bgColor: "bg-purple-50",
-        typeBadge: "bg-purple-100 text-purple-700",
-        description: "Step-by-step programming tutorial for beginners"
-    },
-    {
-        id: 4,
-        name: "Assignment Guidelines",
-        type: "PDF",
-        uploaded: "Jan 08, 2024",
-        size: "856 KB",
-        icon: FileText,
-        iconColor: "text-red-600",
-        bgColor: "bg-red-50",
-        typeBadge: "bg-red-100 text-red-700",
-        description: "Detailed guidelines for completing assignments"
-    },
-    {
-        id: 5,
-        name: "Online Coding Platform",
-        type: "Link",
-        uploaded: "Jan 05, 2024",
-        size: "-",
-        icon: LinkIcon,
-        iconColor: "text-emerald-600",
-        bgColor: "bg-emerald-50",
-        typeBadge: "bg-emerald-100 text-emerald-700",
-        description: "Interactive coding platform for practice"
-    },
-    {
-        id: 6,
-        name: "Exam Preparation Guide",
-        type: "DOCX",
-        uploaded: "Jan 03, 2024",
-        size: "3.1 MB",
-        icon: FileText,
-        iconColor: "text-blue-600",
-        bgColor: "bg-blue-50",
-        typeBadge: "bg-blue-100 text-blue-700",
-        description: "Comprehensive exam preparation materials"
-    },
-]
+import { useGetTeacherScheduleQuery } from "@/redux/features/teacher/teacherApi"
+import { useGetSpecificTeacherClassMaterialQuery, useDeleteClassMaterialsMutation } from "@/redux/features/assignments/assignmentsApi"
+import { toast } from "sonner"
 
 const stats = [
     {
@@ -124,21 +53,85 @@ export default function TeacherResourcesPage() {
     const [isViewModalOpen, setIsViewModalOpen] = useState(false)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-    const [selectedMaterial, setSelectedMaterial] = useState<typeof materials[0] | null>(null)
+    const [selectedMaterial, setSelectedMaterial] = useState<any>(null)
 
-    const handleView = (material: typeof materials[0]) => {
+    // API calls
+    const [deleteMaterial, { isLoading: isDeleting }] = useDeleteClassMaterialsMutation();
+    const { data: classesResponse, isLoading: isClassesLoading } = useGetTeacherScheduleQuery({});
+    const classesList = classesResponse?.data?.data || [];
+
+    const [selectedClassId, setSelectedClassId] = useState<string>("");
+
+    // Set first class as default selected
+    useEffect(() => {
+        if (classesList.length > 0 && !selectedClassId) {
+            setSelectedClassId(classesList[0].id);
+        }
+    }, [classesList, selectedClassId]);
+
+    const { data: materialsResponse, isLoading: isMaterialsLoading } = useGetSpecificTeacherClassMaterialQuery(selectedClassId, {
+        skip: !selectedClassId
+    });
+    const rawMaterialsList = materialsResponse?.data?.data || [];
+
+    // Helper to determine material type UI config
+    const getMaterialTypeConfig = (type: string) => {
+        const t = (type || '').toLowerCase();
+        if (t === 'pdf') return { type: 'PDF', icon: FileText, iconColor: "text-red-600", bgColor: "bg-red-50", typeBadge: "bg-red-100 text-red-700" };
+        if (t === 'docx' || t === 'doc') return { type: 'DOCX', icon: FileText, iconColor: "text-blue-600", bgColor: "bg-blue-50", typeBadge: "bg-blue-100 text-blue-700" };
+        if (t === 'mp4' || t === 'video') return { type: 'Video', icon: Play, iconColor: "text-purple-600", bgColor: "bg-purple-50", typeBadge: "bg-purple-100 text-purple-700" };
+        if (t === 'link' || t === 'external_link') return { type: 'Link', icon: LinkIcon, iconColor: "text-emerald-600", bgColor: "bg-emerald-50", typeBadge: "bg-emerald-100 text-emerald-700" };
+        return { type: t.toUpperCase() || 'FILE', icon: File, iconColor: "text-gray-600", bgColor: "bg-gray-50", typeBadge: "bg-gray-100 text-gray-700" };
+    }
+
+    const materials = rawMaterialsList.map((m: any, index: number) => {
+        const config = getMaterialTypeConfig(m.materialType);
+        return {
+            id: m.id,
+            name: m.description || `Material #${index + 1}`,
+            type: config.type,
+            uploaded: m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'N/A',
+            size: m.materialFiles?.length > 0 ? "File Attached" : "-",
+            icon: config.icon,
+            iconColor: config.iconColor,
+            bgColor: config.bgColor,
+            typeBadge: config.typeBadge,
+            description: m.description || 'No description available',
+            external_link: m.external_link,
+            materialFiles: m.materialFiles,
+        };
+    });
+
+    const handleView = (material: any) => {
         setSelectedMaterial(material)
         setIsViewModalOpen(true)
     }
 
-    const handleEdit = (material: typeof materials[0]) => {
+    const handleEdit = (material: any) => {
         setSelectedMaterial(material)
         setIsEditModalOpen(true)
     }
 
-    const handleDelete = (material: typeof materials[0]) => {
+    const handleDelete = (material: any) => {
         setSelectedMaterial(material)
         setIsDeleteModalOpen(true)
+    }
+
+    const handleConfirmDelete = async () => {
+        if (!selectedMaterial?.id) return
+
+        try {
+            const res = await deleteMaterial(selectedMaterial.id).unwrap()
+            if (res?.success) {
+                toast.success(res?.message || "Material deleted successfully")
+                setIsDeleteModalOpen(false)
+                setSelectedMaterial(null)
+            } else {
+                toast.error(res?.message || "Failed to delete material")
+            }
+        } catch (error: any) {
+            toast.error(error?.data?.message || error?.message || "Failed to delete material")
+        }
     }
 
     return (
@@ -151,28 +144,26 @@ export default function TeacherResourcesPage() {
             {/* Selection Controls */}
             <div className="grid gap-4 rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100 md:grid-cols-2">
                 <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700">Select Course</label>
-                    <Select defaultValue="cs101">
-                        <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select Course" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="cs101">Computer Science 101</SelectItem>
-                            <SelectItem value="math101">Mathematics 101</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700">Select Section</label>
-                    <Select defaultValue="secA">
-                        <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select Section" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="secA">Section A</SelectItem>
-                            <SelectItem value="secB">Section B</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Select Class</label>
+                    {isClassesLoading ? (
+                        <div className="h-10 w-full animate-pulse rounded-md bg-gray-100"></div>
+                    ) : (
+                        <Select
+                            value={selectedClassId}
+                            onValueChange={setSelectedClassId}
+                        >
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select Class" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {classesList.map((cls: any) => (
+                                    <SelectItem key={cls.id} value={cls.id}>
+                                        {cls.classLevel} - {cls.assignableSubject} ({cls.roomNumber})
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
                 </div>
             </div>
 
@@ -215,77 +206,68 @@ export default function TeacherResourcesPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                            {materials.map((material) => (
-                                <tr key={material.id} className="group transition-colors hover:bg-gray-50">
-                                    <td className="px-6 py-4">
-                                        <div className="font-medium text-gray-900">
-                                            {material.name}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2">
-                                            <div className={`rounded p-1 ${material.bgColor}`}>
-                                                <material.icon className={`h-4 w-4 ${material.iconColor}`} />
-                                            </div>
-                                            <span className={`rounded px-2 py-0.5 text-xs font-semibold uppercase ${material.typeBadge}`}>
-                                                {material.type}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-600">{material.uploaded}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-600">{material.size}</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <button
-                                                onClick={() => handleView(material)}
-                                                className="rounded p-2 text-blue-500 hover:bg-blue-50"
-                                                title="View"
-                                            >
-                                                <Eye className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleEdit(material)}
-                                                className="rounded p-2 text-emerald-600 hover:bg-emerald-50"
-                                                title="Edit"
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(material)}
-                                                className="rounded p-2 text-red-500 hover:bg-red-50"
-                                                title="Delete"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </div>
+                            {isMaterialsLoading ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
+                                        Loading materials...
                                     </td>
                                 </tr>
-                            ))}
+                            ) : materials.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
+                                        No materials found for this class.
+                                    </td>
+                                </tr>
+                            ) : (
+                                materials.map((material: any) => (
+                                    <tr key={material.id} className="group transition-colors hover:bg-gray-50">
+                                        <td className="px-6 py-4">
+                                            <div className="font-medium text-gray-900 line-clamp-1 max-w-[300px]" title={material.name}>
+                                                {material.name}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`rounded p-1 ${material.bgColor}`}>
+                                                    <material.icon className={`h-4 w-4 ${material.iconColor}`} />
+                                                </div>
+                                                <span className={`rounded px-2 py-0.5 text-xs font-semibold uppercase ${material.typeBadge}`}>
+                                                    {material.type}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-600">{material.uploaded}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-600">{material.size}</td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleView(material)}
+                                                    className="rounded p-2 text-blue-500 hover:bg-blue-50"
+                                                    title="View"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleEdit(material)}
+                                                    className="rounded p-2 text-emerald-600 hover:bg-emerald-50"
+                                                    title="Edit"
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(material)}
+                                                    className="rounded p-2 text-red-500 hover:bg-red-50"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
-                </div>
-
-                {/* Pagination */}
-                <div className="flex justify-end border-t border-gray-100 p-4">
-                    <div className="flex gap-2">
-                        <button className="flex h-8 w-8 items-center justify-center rounded border border-gray-200 hover:bg-gray-50 text-gray-500">
-                            <span className="sr-only">Previous</span>
-                            &lt;
-                        </button>
-                        <button className="flex h-8 w-8 items-center justify-center rounded bg-emerald-500 text-white shadow-sm">
-                            1
-                        </button>
-                        <button className="flex h-8 w-8 items-center justify-center rounded border border-gray-200 hover:bg-gray-50 text-gray-600">
-                            2
-                        </button>
-                        <button className="flex h-8 w-8 items-center justify-center rounded border border-gray-200 hover:bg-gray-50 text-gray-600">
-                            3
-                        </button>
-                        <button className="flex h-8 w-8 items-center justify-center rounded border border-gray-200 hover:bg-gray-50 text-gray-500">
-                            <span className="sr-only">Next</span>
-                            &gt;
-                        </button>
-                    </div>
                 </div>
             </div>
 
@@ -348,6 +330,11 @@ export default function TeacherResourcesPage() {
                                 <div className="flex-1">
                                     <h3 className="text-lg font-bold text-gray-900">{selectedMaterial?.name}</h3>
                                     <p className="text-sm text-gray-600 mt-1">{selectedMaterial?.description}</p>
+                                    {selectedMaterial?.external_link && (
+                                        <a href={selectedMaterial.external_link} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline mt-2 block">
+                                            {selectedMaterial.external_link}
+                                        </a>
+                                    )}
                                 </div>
                                 {selectedMaterial && (
                                     <div className={`rounded p-2 ${selectedMaterial.bgColor}`}>
@@ -370,19 +357,17 @@ export default function TeacherResourcesPage() {
                                     <span className="font-medium text-gray-700">Uploaded:</span>
                                     <span className="ml-2 text-gray-900">{selectedMaterial?.uploaded}</span>
                                 </div>
-                                <div>
-                                    <span className="font-medium text-gray-700">Downloads:</span>
-                                    <span className="ml-2 text-gray-900">45</span>
-                                </div>
                             </div>
                         </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>Close</Button>
-                        <Button className="bg-emerald-600 hover:bg-emerald-700">
-                            <Download className="mr-2 h-4 w-4" />
-                            Download
-                        </Button>
+                        {selectedMaterial?.materialFiles && selectedMaterial.materialFiles.length > 0 && (
+                            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => window.open(selectedMaterial.materialFiles[0], '_blank')}>
+                                <Download className="mr-2 h-4 w-4" />
+                                Download File
+                            </Button>
+                        )}
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -408,7 +393,7 @@ export default function TeacherResourcesPage() {
                                     <SelectContent>
                                         <SelectItem value="pdf">PDF Document</SelectItem>
                                         <SelectItem value="docx">Word Document</SelectItem>
-                                        <SelectItem value="mp4">Video File</SelectItem>
+                                        <SelectItem value="video">Video File</SelectItem>
                                         <SelectItem value="link">External Link</SelectItem>
                                     </SelectContent>
                                 </Select>
@@ -450,8 +435,10 @@ export default function TeacherResourcesPage() {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>Cancel</Button>
-                        <Button className="bg-red-600 hover:bg-red-700">Delete Material</Button>
+                        <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} disabled={isDeleting}>Cancel</Button>
+                        <Button className="bg-red-600 hover:bg-red-700" onClick={handleConfirmDelete} disabled={isDeleting}>
+                            {isDeleting ? "Deleting..." : "Delete Material"}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

@@ -1,5 +1,5 @@
 const backendUrl =
-  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") || "https://apparel-emission-monster-news.trycloudflare.com";
+  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") || "https://equally-confidentiality-noticed-analytical.trycloudflare.com";
 export const imgUrl = backendUrl;
 export const url = `${backendUrl}/api/v1/`;
 export const getBaseUrl = () => url;

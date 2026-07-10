@@ -45,6 +45,8 @@ export const baseApi = createApi({
     "testimonials",
     "assignments",
     "teacherRecordings",
-    "teacherStudents"
+    "teacherStudents",
+    "teacherSchedule",
+    "teacherAttendance"
   ],
 });

@@ -32,7 +32,7 @@ export function TopInstitutionsSection() {
         { name: "Germany", count: 4, code: "de" },
     ]
 
-    const { data: schoolsResponse, isLoading } = useGetAllSchoolListQuery({});
+    const { data: schoolsResponse, isLoading, isError } = useGetAllSchoolListQuery({});
     const fetchedSchools = schoolsResponse?.data?.data || [];
 
     const institutions: Institution[] = fetchedSchools.map((school: any) => ({
@@ -145,10 +145,26 @@ export function TopInstitutionsSection() {
 
 
                 {/* Institution Cards - Infinite Scroll */}
+                {isError ? (
+                    <div className="mb-8 w-full py-12 text-center sm:mb-10 bg-emerald-700/30 rounded-2xl border border-emerald-500/30">
+                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20">
+                            <svg className="h-8 w-8 text-red-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <p className="text-xl font-bold text-red-100 mb-2">Failed to load institutions</p>
+                        <p className="text-emerald-100">There was a problem connecting to the server. Please try again later.</p>
+                    </div>
+                ) : institutions.length === 0 && !isLoading ? (
+                    <div className="mb-8 w-full py-12 text-center sm:mb-10 bg-emerald-700/30 rounded-2xl border border-emerald-500/30">
+                        <p className="text-xl font-bold text-white mb-2">No institutions found</p>
+                        <p className="text-emerald-100">Check back later for new institutions.</p>
+                    </div>
+                ) : (
                 <div className="relative mb-8 w-full overflow-hidden sm:mb-10">
                     {/* Gradient Overlays for fade effect */}
-                    <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-10 bg-gradient-to-r from-emerald-600 to-transparent sm:w-20" />
-                    <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-10 bg-gradient-to-l from-emerald-600 to-transparent sm:w-20" />
+                    <div className="pointer-events-none absolute left-0 top-0 h-full w-10 bg-gradient-to-r from-emerald-600 to-transparent sm:w-20" />
+                    <div className="pointer-events-none absolute right-0 top-0 h-full w-10 bg-gradient-to-l from-emerald-600 to-transparent sm:w-20" />
 
                     <div className="flex animate-infinite-scroll gap-4 hover:[animation-play-state:paused] sm:gap-6">
                         {/* First set of cards */}
@@ -291,6 +307,7 @@ export function TopInstitutionsSection() {
                         ))}
                     </div>
                 </div>
+                )}
             </div>
         </section>
     )
