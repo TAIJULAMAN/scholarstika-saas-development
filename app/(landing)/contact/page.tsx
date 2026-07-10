@@ -28,8 +28,6 @@ export default function ContactPage() {
                     </div>
                 </div>
             </section>
-
-
             {/* CTA Section */}
             <section className="bg-gradient-to-r from-emerald-600 to-emerald-700 py-16 text-white">
                 <div className="container mx-auto px-6 text-center lg:px-12">

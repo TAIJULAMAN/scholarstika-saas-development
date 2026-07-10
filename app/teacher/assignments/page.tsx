@@ -8,53 +8,20 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Calendar, FileText, Users, AlertCircle } from "lucide-react"
+import { useGetSpecificTeacherAssignmentsQuery, useUpdateTeacherAssignmentMutation } from "@/redux/features/assignments/assignmentsApi"
+import { toast } from "sonner"
 
-const assignments = [
-    {
-        id: 1,
-        title: "Algebra Homework - Chapter 5",
-        class: "Grade 11-A",
-        dueDate: "2024-01-15",
-        submissions: 18,
-        totalStudents: 24,
-        status: "active",
-        type: "Homework",
-        description: "Complete exercises 1-20 from Chapter 5"
-    },
-    {
-        id: 2,
-        title: "Geometry Practice Problems",
-        class: "Grade 9-A",
-        dueDate: "2024-01-12",
-        submissions: 15,
-        totalStudents: 17,
-        status: "active",
-        type: "Practice",
-        description: "Practice problems on triangles and circles"
-    },
-    {
-        id: 3,
-        title: "Calculus Quiz Preparation",
-        class: "Grade 12-A",
-        dueDate: "2024-01-10",
-        submissions: 22,
-        totalStudents: 22,
-        status: "completed",
-        type: "Quiz Prep",
-        description: "Review materials for upcoming calculus quiz"
-    },
-    {
-        id: 4,
-        title: "Statistics Project",
-        class: "Grade 11-B",
-        dueDate: "2024-01-20",
-        submissions: 8,
-        totalStudents: 25,
-        status: "active",
-        type: "Project",
-        description: "Data analysis project on real-world statistics"
-    },
-]
+type Assignment = {
+    id: string;
+    title: string;
+    class: string;
+    dueDate: string;
+    submissions: number;
+    totalStudents: number;
+    status: string;
+    type: string;
+    description: string;
+}
 
 const stats = [
     {
@@ -85,20 +52,62 @@ export default function TeacherAssignmentsPage() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [isViewModalOpen, setIsViewModalOpen] = useState(false)
-    const [selectedAssignment, setSelectedAssignment] = useState<typeof assignments[0] | null>(null)
+    const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
+
+    const [updateTeacherAssignment, { isLoading: isUpdating }] = useUpdateTeacherAssignmentMutation();
+
+    const { data: assignmentsData, isLoading } = useGetSpecificTeacherAssignmentsQuery({});
+    const fetchedAssignments = assignmentsData?.data?.data || [];
+
+    const assignments: Assignment[] = fetchedAssignments.map((a: any) => ({
+        id: a.id,
+        title: a.assignmentTitle,
+        class: a.classDistributions?.classLevel || "N/A",
+        dueDate: a.assignmentDueDate,
+        submissions: 0,
+        totalStudents: 100,
+        status: new Date(a.assignmentDueDate) < new Date() ? "completed" : "active",
+        type: a.assignmentType,
+        description: a.description
+    }));
 
     const filteredAssignments = filter === "all"
         ? assignments
         : assignments.filter(a => a.status === filter)
 
-    const handleEdit = (assignment: typeof assignments[0]) => {
+    const handleUpdateAssignment = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!selectedAssignment) return;
+
+        const formData = new FormData(e.currentTarget);
+        const data = {
+            assignmentTitle: formData.get("editTitle"),
+            assignmentType: formData.get("editType"),
+            assignmentDueDate: formData.get("editDueDate") ? new Date(formData.get("editDueDate") as string).toISOString() : undefined,
+            description: formData.get("editDescription"),
+        };
+
+        try {
+            await updateTeacherAssignment({ id: selectedAssignment.id, data }).unwrap();
+            toast.success("Assignment updated successfully");
+            setIsEditModalOpen(false);
+        } catch (error) {
+            toast.error("Failed to update assignment");
+        }
+    }
+
+    const handleEdit = (assignment: Assignment) => {
         setSelectedAssignment(assignment)
         setIsEditModalOpen(true)
     }
 
-    const handleView = (assignment: typeof assignments[0]) => {
+    const handleView = (assignment: Assignment) => {
         setSelectedAssignment(assignment)
         setIsViewModalOpen(true)
+    }
+
+    if (isLoading) {
+        return <div className="p-6 text-center text-lg font-medium text-emerald-600">Loading assignments...</div>;
     }
 
     return (
@@ -288,55 +297,59 @@ export default function TeacherAssignmentsPage() {
                     <DialogHeader>
                         <DialogTitle>Edit Assignment</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="editTitle">Assignment Title</Label>
-                            <Input id="editTitle" defaultValue={selectedAssignment?.title} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
+                    <form onSubmit={handleUpdateAssignment}>
+                        <div className="space-y-4 py-4">
                             <div className="space-y-2">
-                                <Label htmlFor="editClass">Class</Label>
-                                <Select defaultValue={selectedAssignment?.class}>
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Grade 9-A">Grade 9-A</SelectItem>
-                                        <SelectItem value="Grade 10-A">Grade 10-A</SelectItem>
-                                        <SelectItem value="Grade 11-A">Grade 11-A</SelectItem>
-                                        <SelectItem value="Grade 11-B">Grade 11-B</SelectItem>
-                                        <SelectItem value="Grade 12-A">Grade 12-A</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <Label htmlFor="editTitle">Assignment Title</Label>
+                                <Input id="editTitle" name="editTitle" defaultValue={selectedAssignment?.title} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="editClass">Class</Label>
+                                    <Select defaultValue={selectedAssignment?.class} name="editClass">
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Grade 9-A">Grade 9-A</SelectItem>
+                                            <SelectItem value="Grade 10-A">Grade 10-A</SelectItem>
+                                            <SelectItem value="Grade 11-A">Grade 11-A</SelectItem>
+                                            <SelectItem value="Grade 11-B">Grade 11-B</SelectItem>
+                                            <SelectItem value="Grade 12-A">Grade 12-A</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="editType">Type</Label>
+                                    <Select defaultValue={selectedAssignment?.type} name="editType">
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Homework">Homework</SelectItem>
+                                            <SelectItem value="Practice">Practice</SelectItem>
+                                            <SelectItem value="Project">Project</SelectItem>
+                                            <SelectItem value="Quiz Prep">Quiz Prep</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="editType">Type</Label>
-                                <Select defaultValue={selectedAssignment?.type}>
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Homework">Homework</SelectItem>
-                                        <SelectItem value="Practice">Practice</SelectItem>
-                                        <SelectItem value="Project">Project</SelectItem>
-                                        <SelectItem value="Quiz Prep">Quiz Prep</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <Label htmlFor="editDueDate">Due Date</Label>
+                                <Input id="editDueDate" name="editDueDate" type="date" defaultValue={selectedAssignment?.dueDate ? new Date(selectedAssignment.dueDate).toISOString().split('T')[0] : ''} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="editDescription">Description</Label>
+                                <Textarea id="editDescription" name="editDescription" defaultValue={selectedAssignment?.description} rows={4} />
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="editDueDate">Due Date</Label>
-                            <Input id="editDueDate" type="date" defaultValue={selectedAssignment?.dueDate} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="editDescription">Description</Label>
-                            <Textarea id="editDescription" defaultValue={selectedAssignment?.description} rows={4} />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-                        <Button className="bg-emerald-600 hover:bg-emerald-700">Save Changes</Button>
-                    </DialogFooter>
+                        <DialogFooter>
+                            <Button variant="outline" type="button" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+                            <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700" disabled={isUpdating}>
+                                {isUpdating ? "Saving..." : "Save Changes"}
+                            </Button>
+                        </DialogFooter>
+                    </form>
                 </DialogContent>
             </Dialog>
 
