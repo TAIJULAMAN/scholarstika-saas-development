@@ -2,80 +2,8 @@
 
 import { Clock, Calendar, Video, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useGetTeacherScheduleQuery } from "@/redux/features/teacher/teacherApi"
 
-const timeSlots = [
-    "8:00 - 8:45",
-    "8:45 - 9:30",
-    "9:30 - 10:15",
-    "10:15 - 11:00",
-    "11:00 - 11:45",
-    "11:45 - 12:30",
-    "1:00 - 1:45",
-    "1:45 - 2:30",
-]
-
-const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-
-interface ClassSession {
-    subject: string
-    grade: string
-    type: 'online' | 'offline'
-    room?: string
-    meetingUrl?: string
-}
-
-const schedule: { [key: string]: ClassSession[] } = {
-    Monday: [
-        { subject: "Mathematics", grade: "Grade 10-A", type: 'offline', room: "Room 101" },
-        { subject: "Free Period", grade: "-", type: 'offline' },
-        { subject: "Mathematics", grade: "Grade 10-B", type: 'online', meetingUrl: "https://zoom.us/j/123456789" },
-        { subject: "Break", grade: "-", type: 'offline' },
-        { subject: "Free Period", grade: "-", type: 'offline' },
-        { subject: "Free Period", grade: "-", type: 'offline' },
-        { subject: "Statistics", grade: "Grade 11-B", type: 'offline', room: "Room 103" },
-        { subject: "Free Period", grade: "-", type: 'offline' },
-    ],
-    Tuesday: [
-        { subject: "Free Period", grade: "-", type: 'offline' },
-        { subject: "Geometry", grade: "Grade 9-A", type: 'online', meetingUrl: "https://zoom.us/j/987654321" },
-        { subject: "Free Period", grade: "-", type: 'offline' },
-        { subject: "Break", grade: "-", type: 'offline' },
-        { subject: "Algebra", grade: "Grade 11-A", type: 'offline', room: "Room 102" },
-        { subject: "Free Period", grade: "-", type: 'offline' },
-        { subject: "Calculus", grade: "Grade 12-A", type: 'offline', room: "Room 102" },
-        { subject: "Free Period", grade: "-", type: 'offline' },
-    ],
-    Wednesday: [
-        { subject: "Mathematics", grade: "Grade 10-A", type: 'offline', room: "Room 101" },
-        { subject: "Free Period", grade: "-", type: 'offline' },
-        { subject: "Mathematics", grade: "Grade 10-B", type: 'online', meetingUrl: "https://zoom.us/j/123456789" },
-        { subject: "Break", grade: "-", type: 'offline' },
-        { subject: "Free Period", grade: "-", type: 'offline' },
-        { subject: "Free Period", grade: "-", type: 'offline' },
-        { subject: "Statistics", grade: "Grade 11-B", type: 'offline', room: "Room 103" },
-        { subject: "Free Period", grade: "-", type: 'offline' },
-    ],
-    Thursday: [
-        { subject: "Free Period", grade: "-", type: 'offline' },
-        { subject: "Geometry", grade: "Grade 9-A", type: 'online', meetingUrl: "https://zoom.us/j/987654321" },
-        { subject: "Free Period", grade: "-", type: 'offline' },
-        { subject: "Break", grade: "-", type: 'offline' },
-        { subject: "Algebra", grade: "Grade 11-A", type: 'offline', room: "Room 102" },
-        { subject: "Free Period", grade: "-", type: 'offline' },
-        { subject: "Calculus", grade: "Grade 12-A", type: 'offline', room: "Room 102" },
-        { subject: "Free Period", grade: "-", type: 'offline' },
-    ],
-    Friday: [
-        { subject: "Mathematics", grade: "Grade 10-A", type: 'offline', room: "Room 101" },
-        { subject: "Free Period", grade: "-", type: 'offline' },
-        { subject: "Mathematics", grade: "Grade 10-B", type: 'online', meetingUrl: "https://zoom.us/j/123456789" },
-        { subject: "Break", grade: "-", type: 'offline' },
-        { subject: "Geometry", grade: "Grade 9-A", type: 'online', meetingUrl: "https://zoom.us/j/987654321" },
-        { subject: "Free Period", grade: "-", type: 'offline' },
-        { subject: "Free Period", grade: "-", type: 'offline' },
-        { subject: "Free Period", grade: "-", type: 'offline' },
-    ],
-}
 
 const subjectColors: { [key: string]: string } = {
     Mathematics: "bg-blue-50 text-blue-700 border-blue-200",
@@ -88,6 +16,44 @@ const subjectColors: { [key: string]: string } = {
 }
 
 export default function TeacherSchedulePage() {
+    const { data: scheduleData, isLoading } = useGetTeacherScheduleQuery({});
+    
+    const rawSchedule = scheduleData?.data?.data || [];
+    
+    const allDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const activeDays = allDays.filter(d => rawSchedule.some((item: any) => item.day === d));
+    const days = activeDays.length > 0 ? activeDays : ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+    
+    const uniqueTimes = Array.from(new Set(rawSchedule.map((item: any) => item.time))).filter(Boolean) as string[];
+    uniqueTimes.sort((a, b) => a.localeCompare(b)); // sort times alphabetically (works well for 08:00 vs 09:00 format)
+    const timeSlots = uniqueTimes.length > 0 ? uniqueTimes : [
+        "8:00 - 8:45",
+        "8:45 - 9:30",
+        "9:30 - 10:15",
+        "10:15 - 11:00",
+        "11:00 - 11:45",
+        "11:45 - 12:30",
+        "1:00 - 1:45",
+        "1:45 - 2:30",
+    ];
+
+    const getPeriod = (day: string, time: string) => {
+        const session = rawSchedule.find((item: any) => item.day === day && item.time === time);
+        if (!session) return null;
+        
+        return {
+            subject: session.assignableSubject || "Unknown",
+            grade: session.classLevel || "-",
+            type: session.isOnline ? "online" : "offline",
+            room: session.roomNumber || "N/A",
+            meetingUrl: "https://zoom.us/j/123456789" // placeholder since API didn't provide it
+        };
+    };
+
+    if (isLoading) {
+        return <div className="p-6 text-center text-lg font-medium text-emerald-600">Loading schedule...</div>;
+    }
+
     return (
         <div className="space-y-6">
             <div className="rounded-xl bg-emerald-500 p-6 text-white shadow-lg">
@@ -143,10 +109,10 @@ export default function TeacherSchedulePage() {
                                         </div>
                                     </td>
                                     {days.map((day) => {
-                                        const period = schedule[day]?.[timeIndex]
-                                        if (!period) return <td key={day} className="border-r border-gray-50"></td>
+                                        const period = getPeriod(day, time)
+                                        if (!period) return <td key={day} className="border-r border-gray-50 bg-gray-50/10"></td>
 
-                                        const colorClass = subjectColors[period.subject] || "bg-gray-50 text-gray-700"
+                                        const colorClass = subjectColors[period.subject] || "bg-gray-50 text-gray-700 border-gray-200"
 
                                         return (
                                             <td key={day} className="p-2 border-r border-gray-50 min-w-[180px]">

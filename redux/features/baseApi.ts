@@ -41,6 +41,9 @@ export const baseApi = createApi({
     "team",
     "branchManagement",
     "branchUsers",
-    "testimonials"
+    "testimonials",
+    "assignments",
+    "teacherRecordings",
+    "teacherStudents"
   ],
 });

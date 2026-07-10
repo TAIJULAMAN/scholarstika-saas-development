@@ -17,9 +17,20 @@ const subscriptionApi = baseApi.injectEndpoints({
       }),
       providesTags: ["auth"],
     }),
+    getAllSchoolList: builder.query({
+      query: (params) => ({
+        url: "subscription/all_school_list",
+        method: "GET",
+        params,
+      }),
+    }),
   }),
 });
 
-export const { useCreateCheckoutSessionMutation, useGetMyPaymentStatusQuery } = subscriptionApi;
+export const { 
+  useCreateCheckoutSessionMutation, 
+  useGetMyPaymentStatusQuery,
+  useGetAllSchoolListQuery
+} = subscriptionApi;
 
 export default subscriptionApi;

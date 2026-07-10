@@ -1,49 +1,71 @@
 "use client"
-
 import { useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Eye, Mail, Phone, Users, UserCheck, AlertCircle, MessageSquare } from "lucide-react"
+import { useGetTeacherStudentsQuery } from "@/redux/features/teacher/teacherApi"
 
-const students = [
-    { id: 1, name: "John Smith", email: "john@example.com", phone: "+1234567890", class: "Grade 10-A", status: "Present", avatar: "https://avatar.iran.liara.run/public/1" },
-    { id: 2, name: "Emma Johnson", email: "emma@example.com", phone: "+1234567891", class: "Grade 10-A", status: "Absent", avatar: "https://avatar.iran.liara.run/public/2" },
-    { id: 3, name: "Michael Brown", email: "michael@example.com", phone: "+1234567892", class: "Grade 10-B", status: "Present", avatar: "https://avatar.iran.liara.run/public/3" },
-    { id: 4, name: "Sophia Davis", email: "sophia@example.com", phone: "+1234567893", class: "Grade 10-B", status: "Present", avatar: "https://avatar.iran.liara.run/public/4" },
-    { id: 5, name: "William Wilson", email: "william@example.com", phone: "+1234567894", class: "Grade 11-A", status: "Late", avatar: "https://avatar.iran.liara.run/public/5" },
-    { id: 6, name: "Olivia Martinez", email: "olivia@example.com", phone: "+1234567895", class: "Grade 11-A", status: "Present", avatar: "https://avatar.iran.liara.run/public/6" },
-]
-
-const stats = [
-    {
-        label: "Total Students",
-        value: "142",
-        icon: Users,
-        color: "text-purple-600",
-        bg: "bg-purple-50",
-    },
-    {
-        label: "Present Today",
-        value: "138",
-        icon: UserCheck,
-        color: "text-emerald-600",
-        bg: "bg-emerald-50",
-    },
-    {
-        label: "At Risk",
-        value: "4",
-        icon: AlertCircle,
-        color: "text-red-600",
-        bg: "bg-red-50",
-    },
-]
+type Student = {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    class: string;
+    status: string;
+    avatar: string | undefined;
+}
 
 export default function TeacherStudentsPage() {
     const [classFilter, setClassFilter] = useState("all")
 
+    const { data: studentsData, isLoading } = useGetTeacherStudentsQuery({});
+
+    // Safely extract the array to handle nested pagination responses
+    const fetchedStudents = Array.isArray(studentsData?.data)
+        ? studentsData.data
+        : (studentsData?.data?.data || []);
+
+    const students: Student[] = fetchedStudents.map((s: any) => ({
+        id: s.id,
+        name: s.name,
+        email: s.email,
+        phone: s.guardianPhone || "N/A",
+        class: s.className || (s.classDistributions?.[0]?.classLevel) || "N/A",
+        status: "Present",
+        avatar: s.photo || undefined
+    }));
+
     const filteredStudents = classFilter === "all"
         ? students
         : students.filter(s => s.class === classFilter)
+
+    const stats = [
+        {
+            label: "Total Students",
+            value: filteredStudents.length.toString(),
+            icon: Users,
+            color: "text-purple-600",
+            bg: "bg-purple-50",
+        },
+        {
+            label: "Present Today",
+            value: filteredStudents.filter(s => s.status === "Present").length.toString(),
+            icon: UserCheck,
+            color: "text-emerald-600",
+            bg: "bg-emerald-50",
+        },
+        {
+            label: "At Risk",
+            value: filteredStudents.filter(s => s.status !== "Present").length.toString(),
+            icon: AlertCircle,
+            color: "text-red-600",
+            bg: "bg-red-50",
+        },
+    ]
+
+    if (isLoading) {
+        return <div className="p-6 text-center text-lg font-medium text-emerald-600">Loading students...</div>;
+    }
 
     return (
         <div className="space-y-6">

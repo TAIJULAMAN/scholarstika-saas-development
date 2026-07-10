@@ -163,8 +163,8 @@ export function TestimonialsSection() {
                             key={idx}
                             onClick={() => setCurrentIndex(idx)}
                             className={`h-2 rounded-full transition-all ${idx === currentIndex
-                                    ? 'w-8 bg-emerald-600'
-                                    : 'w-2 bg-emerald-300 hover:bg-emerald-400'
+                                ? 'w-8 bg-emerald-600'
+                                : 'w-2 bg-emerald-300 hover:bg-emerald-400'
                                 }`}
                             aria-label={`Go to testimonial ${idx + 1}`}
                         />
