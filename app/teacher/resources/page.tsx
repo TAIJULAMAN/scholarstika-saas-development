@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 
 import { useGetTeacherScheduleQuery } from "@/redux/features/teacher/teacherApi"
-import { useGetSpecificTeacherClassMaterialQuery, useDeleteClassMaterialsMutation } from "@/redux/features/assignments/assignmentsApi"
+import { useGetSpecificTeacherClassMaterialQuery, useDeleteClassMaterialsMutation, useCreateClassMaterialsMutation, useUpdateSpecificClassMaterialMutation } from "@/redux/features/assignments/assignmentsApi"
 import { toast } from "sonner"
 
 const stats = [
@@ -56,8 +56,80 @@ export default function TeacherResourcesPage() {
     const [selectedMaterial, setSelectedMaterial] = useState<any>(null)
 
     // API calls
+    const [createMaterial, { isLoading: isCreating }] = useCreateClassMaterialsMutation();
+    const [updateMaterial, { isLoading: isUpdating }] = useUpdateSpecificClassMaterialMutation();
     const [deleteMaterial, { isLoading: isDeleting }] = useDeleteClassMaterialsMutation();
+
+    const [editForm, setEditForm] = useState({
+        materialName: "",
+        materialType: "pdf",
+        description: "",
+        external_link: "",
+    });
+    const [editFile, setEditFile] = useState<File | null>(null);
     const { data: classesResponse, isLoading: isClassesLoading } = useGetTeacherScheduleQuery({});
+
+    const [createForm, setCreateForm] = useState({
+        materialName: "",
+        classDistributionId: "",
+        materialType: "pdf",
+        description: "",
+        external_link: "",
+    });
+    const [createFile, setCreateFile] = useState<File | null>(null);
+
+    const handleCreateMaterial = async () => {
+        try {
+            if (!createForm.materialName) {
+                alert("Please provide a material name.");
+                return;
+            }
+            if (!createForm.classDistributionId) {
+                alert("Please select a class for the material.");
+                return;
+            }
+            if (!createForm.description) {
+                alert("Please provide a description.");
+                return;
+            }
+
+            const dataObj = {
+                assignmentTitle: createForm.materialName,
+                classDistributionId: createForm.classDistributionId,
+                materialType: createForm.materialType,
+                description: createForm.description,
+                external_link: createForm.external_link,
+                materialFiles: [],
+            };
+
+            const formData = new FormData();
+            formData.append("data", JSON.stringify(dataObj));
+            if (createFile) {
+                formData.append("materialFiles", createFile);
+            } else if (createForm.materialType !== "link") {
+                alert("Please select an attachment! The backend strictly requires 'materialFiles' to be present.");
+                return;
+            }
+
+            await createMaterial(formData).unwrap();
+            setIsAddModalOpen(false);
+            setCreateForm({
+                materialName: "",
+                classDistributionId: selectedClassId || "",
+                materialType: "pdf",
+                description: "",
+                external_link: "",
+            });
+            setCreateFile(null);
+            toast.success("Material added successfully");
+        } catch (error: any) {
+            console.error("Failed to create material:", error);
+            const errorMessage = error?.data?.errorMessages?.[0]?.message || 
+                                 error?.data?.message || 
+                                 "Failed to add material. Please try again.";
+            alert(`Error: ${errorMessage}`);
+        }
+    };
     const classesList = classesResponse?.data?.data || [];
 
     const [selectedClassId, setSelectedClassId] = useState<string>("");
@@ -88,7 +160,8 @@ export default function TeacherResourcesPage() {
         const config = getMaterialTypeConfig(m.materialType);
         return {
             id: m.id,
-            name: m.description || `Material #${index + 1}`,
+            name: m.assignmentTitle || m.description || `Material #${index + 1}`,
+            originalType: m.materialType,
             type: config.type,
             uploaded: m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'N/A',
             size: m.materialFiles?.length > 0 ? "File Attached" : "-",
@@ -108,9 +181,51 @@ export default function TeacherResourcesPage() {
     }
 
     const handleEdit = (material: any) => {
-        setSelectedMaterial(material)
-        setIsEditModalOpen(true)
-    }
+        setSelectedMaterial(material);
+        setEditForm({
+            materialName: material.name.startsWith('Material #') ? "" : material.name,
+            materialType: material.originalType || "pdf",
+            description: material.description || "",
+            external_link: material.external_link || "",
+        });
+        setEditFile(null);
+        setIsEditModalOpen(true);
+    };
+
+    const handleUpdateMaterial = async () => {
+        if (!selectedMaterial?.id) return;
+        try {
+            if (!editForm.materialName) {
+                alert("Please provide a material name.");
+                return;
+            }
+
+            const dataObj = {
+                assignmentTitle: editForm.materialName,
+                classDistributionId: selectedClassId,
+                materialType: editForm.materialType,
+                description: editForm.description,
+                external_link: editForm.external_link,
+            };
+
+            const formData = new FormData();
+            formData.append("data", JSON.stringify(dataObj));
+            if (editFile) {
+                formData.append("materialFiles", editFile);
+            }
+
+            await updateMaterial({ id: selectedMaterial.id, data: formData }).unwrap();
+            setIsEditModalOpen(false);
+            setEditFile(null);
+            toast.success("Material updated successfully");
+        } catch (error: any) {
+            console.error("Failed to update material:", error);
+            const errorMessage = error?.data?.errorMessages?.[0]?.message || 
+                                 error?.data?.message || 
+                                 "Failed to update material. Please try again.";
+            alert(`Error: ${errorMessage}`);
+        }
+    };
 
     const handleDelete = (material: any) => {
         setSelectedMaterial(material)
@@ -189,7 +304,10 @@ export default function TeacherResourcesPage() {
             <div className="rounded-xl bg-white shadow-sm ring-1 ring-gray-100">
                 <div className="flex items-center justify-between border-b border-gray-100 p-6">
                     <h2 className="text-lg font-bold text-gray-900">Course Materials</h2>
-                    <Button className="bg-emerald-500" onClick={() => setIsAddModalOpen(true)}>
+                    <Button className="bg-emerald-500" onClick={() => {
+                        setCreateForm(prev => ({ ...prev, classDistributionId: selectedClassId }));
+                        setIsAddModalOpen(true);
+                    }}>
                         <Plus className="mr-2 h-4 w-4" />
                         Add New Material
                     </Button>
@@ -280,12 +398,38 @@ export default function TeacherResourcesPage() {
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
                             <Label htmlFor="materialName">Material Name</Label>
-                            <Input id="materialName" placeholder="e.g., Introduction to Algorithms" />
+                            <Input 
+                                id="materialName" 
+                                placeholder="e.g., Introduction to Algorithms" 
+                                value={createForm.materialName}
+                                onChange={(e) => setCreateForm({ ...createForm, materialName: e.target.value })}
+                            />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Select Class</Label>
+                            <Select 
+                                value={createForm.classDistributionId}
+                                onValueChange={(val) => setCreateForm({ ...createForm, classDistributionId: val })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Class" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {classesList.map((c: any) => (
+                                        <SelectItem key={c.id} value={c.id}>
+                                            {c.classLevel} - {c.assignableSubject}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="materialType">Material Type</Label>
-                                <Select>
+                                <Select 
+                                    value={createForm.materialType}
+                                    onValueChange={(val) => setCreateForm({ ...createForm, materialType: val })}
+                                >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select type" />
                                     </SelectTrigger>
@@ -297,23 +441,47 @@ export default function TeacherResourcesPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="uploadDate">Upload Date</Label>
-                                <Input id="uploadDate" type="date" />
-                            </div>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="description">Description</Label>
-                            <Textarea id="description" placeholder="Enter material description..." rows={3} />
+                            <Textarea 
+                                id="description" 
+                                placeholder="Enter material description..." 
+                                rows={3} 
+                                value={createForm.description}
+                                onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                            />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="fileUpload">Upload File</Label>
-                            <Input id="fileUpload" type="file" />
-                        </div>
+                        {createForm.materialType === "link" ? (
+                            <div className="space-y-2">
+                                <Label htmlFor="externalLink">External Link</Label>
+                                <Input 
+                                    id="externalLink" 
+                                    placeholder="https://..." 
+                                    value={createForm.external_link}
+                                    onChange={(e) => setCreateForm({ ...createForm, external_link: e.target.value })}
+                                />
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <Label htmlFor="fileUpload">Upload File</Label>
+                                <Input 
+                                    id="fileUpload" 
+                                    type="file" 
+                                    onChange={(e) => setCreateFile(e.target.files?.[0] || null)}
+                                />
+                            </div>
+                        )}
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
-                        <Button className="bg-emerald-600 hover:bg-emerald-700">Add Material</Button>
+                        <Button 
+                            className="bg-emerald-600 hover:bg-emerald-700" 
+                            onClick={handleCreateMaterial}
+                            disabled={isCreating}
+                        >
+                            {isCreating ? "Adding..." : "Add Material"}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -381,14 +549,21 @@ export default function TeacherResourcesPage() {
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
                             <Label htmlFor="editMaterialName">Material Name</Label>
-                            <Input id="editMaterialName" defaultValue={selectedMaterial?.name} />
+                            <Input 
+                                id="editMaterialName" 
+                                value={editForm.materialName} 
+                                onChange={(e) => setEditForm({ ...editForm, materialName: e.target.value })}
+                            />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="editMaterialType">Material Type</Label>
-                                <Select defaultValue={selectedMaterial?.type.toLowerCase()}>
+                                <Select 
+                                    value={editForm.materialType}
+                                    onValueChange={(val) => setEditForm({ ...editForm, materialType: val })}
+                                >
                                     <SelectTrigger>
-                                        <SelectValue />
+                                        <SelectValue placeholder="Select type" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="pdf">PDF Document</SelectItem>
@@ -398,23 +573,46 @@ export default function TeacherResourcesPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="editUploadDate">Upload Date</Label>
-                                <Input id="editUploadDate" type="date" />
-                            </div>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="editDescription">Description</Label>
-                            <Textarea id="editDescription" defaultValue={selectedMaterial?.description} rows={3} />
+                            <Textarea 
+                                id="editDescription" 
+                                value={editForm.description} 
+                                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                                rows={3} 
+                            />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="editFileUpload">Replace File (Optional)</Label>
-                            <Input id="editFileUpload" type="file" />
-                        </div>
+                        {editForm.materialType === "link" ? (
+                            <div className="space-y-2">
+                                <Label htmlFor="editExternalLink">External Link</Label>
+                                <Input 
+                                    id="editExternalLink" 
+                                    placeholder="https://..." 
+                                    value={editForm.external_link}
+                                    onChange={(e) => setEditForm({ ...editForm, external_link: e.target.value })}
+                                />
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <Label htmlFor="editFileUpload">Replace File (Optional)</Label>
+                                <Input 
+                                    id="editFileUpload" 
+                                    type="file" 
+                                    onChange={(e) => setEditFile(e.target.files?.[0] || null)}
+                                />
+                            </div>
+                        )}
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-                        <Button className="bg-emerald-600 hover:bg-emerald-700">Save Changes</Button>
+                        <Button 
+                            className="bg-emerald-600 hover:bg-emerald-700" 
+                            onClick={handleUpdateMaterial}
+                            disabled={isUpdating}
+                        >
+                            {isUpdating ? "Saving..." : "Save Changes"}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

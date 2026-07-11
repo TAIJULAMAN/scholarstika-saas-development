@@ -1,6 +1,7 @@
 "use client"
 import { useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Eye, Mail, Phone, Users, UserCheck, AlertCircle, MessageSquare } from "lucide-react"
 import { useGetTeacherStudentsQuery } from "@/redux/features/teacher/teacherApi"
@@ -13,10 +14,14 @@ type Student = {
     class: string;
     status: string;
     avatar: string | undefined;
+    studentId: string;
+    original: any;
 }
 
 export default function TeacherStudentsPage() {
     const [classFilter, setClassFilter] = useState("all")
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+    const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
 
     const { data: studentsData, isLoading } = useGetTeacherStudentsQuery({});
 
@@ -32,8 +37,12 @@ export default function TeacherStudentsPage() {
         phone: s.guardianPhone || "N/A",
         class: s.className || (s.classDistributions?.[0]?.classLevel) || "N/A",
         status: "Present",
-        avatar: s.photo || undefined
+        avatar: s.photo || undefined,
+        studentId: s.studentId || "N/A",
+        original: s
     }));
+
+    const uniqueClasses = Array.from(new Set(students.map(s => s.class))).filter(c => c && c !== "N/A");
 
     const filteredStudents = classFilter === "all"
         ? students
@@ -101,9 +110,9 @@ export default function TeacherStudentsPage() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Classes</SelectItem>
-                            <SelectItem value="Grade 10-A">Grade 10-A</SelectItem>
-                            <SelectItem value="Grade 10-B">Grade 10-B</SelectItem>
-                            <SelectItem value="Grade 11-A">Grade 11-A</SelectItem>
+                            {uniqueClasses.map((c) => (
+                                <SelectItem key={c} value={c}>{c}</SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                 </div>
@@ -157,7 +166,14 @@ export default function TeacherStudentsPage() {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex justify-end gap-2">
-                                            <button className="rounded p-2 text-emerald-600 hover:bg-emerald-50" title="View Profile">
+                                            <button 
+                                                className="rounded p-2 text-emerald-600 hover:bg-emerald-50" 
+                                                title="View Profile"
+                                                onClick={() => {
+                                                    setSelectedStudent(student);
+                                                    setIsViewModalOpen(true);
+                                                }}
+                                            >
                                                 <Eye className="h-4 w-4" />
                                             </button>
                                         </div>
@@ -168,6 +184,81 @@ export default function TeacherStudentsPage() {
                     </table>
                 </div>
             </div>
+
+            {/* View Student Modal */}
+            <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Student Profile</DialogTitle>
+                    </DialogHeader>
+                    {selectedStudent && (
+                        <div className="space-y-6 py-4">
+                            <div className="flex items-center gap-6 border-b border-gray-100 pb-6">
+                                <Avatar className="h-20 w-20 border border-gray-100 shadow-sm">
+                                    <AvatarImage src={selectedStudent.avatar} />
+                                    <AvatarFallback className="bg-emerald-100 text-emerald-600 text-2xl font-bold">
+                                        {selectedStudent.name.split(' ').map((n: string) => n[0]).join('')}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-900">{selectedStudent.name}</h2>
+                                    <div className="mt-2 flex flex-col gap-1 text-sm text-gray-600">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-semibold text-gray-700">Student ID:</span> {selectedStudent.studentId}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-semibold text-gray-700">Primary Class:</span> {selectedStudent.class}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                    <h3 className="font-semibold text-gray-900 border-b pb-2">Contact Information</h3>
+                                    <div className="space-y-3 text-sm">
+                                        <div className="flex items-center gap-3 text-gray-600">
+                                            <Mail className="h-4 w-4 text-emerald-600" />
+                                            <span>{selectedStudent.email}</span>
+                                        </div>
+                                        <div className="flex items-center gap-3 text-gray-600">
+                                            <Phone className="h-4 w-4 text-emerald-600" />
+                                            <span>{selectedStudent.phone} (Guardian)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
+                                    <h3 className="font-semibold text-gray-900 border-b pb-2">Current Status</h3>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-sm font-semibold ${selectedStudent.status === "Present" ? "bg-green-100 text-green-700" :
+                                            selectedStudent.status === "Absent" ? "bg-red-100 text-red-700" :
+                                                "bg-yellow-100 text-yellow-700"
+                                            }`}>
+                                            {selectedStudent.status} Today
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h3 className="font-semibold text-gray-900 border-b pb-2">Enrolled Subjects</h3>
+                                {selectedStudent.original.classDistributions && selectedStudent.original.classDistributions.length > 0 ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {selectedStudent.original.classDistributions.map((cd: any, idx: number) => (
+                                            <div key={idx} className="rounded-lg bg-gray-50 p-3 border border-gray-100 shadow-sm">
+                                                <p className="font-semibold text-gray-800">{cd.assignableSubject}</p>
+                                                <p className="text-xs text-gray-500 mt-1">{cd.day} • {cd.time}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-gray-500 italic">No assigned subjects found.</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

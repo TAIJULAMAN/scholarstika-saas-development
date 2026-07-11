@@ -27,9 +27,10 @@ export const teacherApi = baseApi.injectEndpoints({
       providesTags: ["teacherSchedule"],
     }),
     getTeacherAttendance: builder.query({
-      query: (classLevelId: string) => ({
+      query: ({ classLevelId, date }: { classLevelId: string, date: string }) => ({
         url: `/teacher/find_by_specific_student_attendance_of_teacher/${classLevelId}`,
         method: "GET",
+        params: { date }
       }),
       providesTags: ["teacherAttendance"],
     }),

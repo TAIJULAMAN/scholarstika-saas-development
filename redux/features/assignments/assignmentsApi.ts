@@ -10,10 +10,25 @@ export const assignmentsApi = baseApi.injectEndpoints({
       }),
       providesTags: ["assignments"],
     }),
+    getMyAnnouncementExamList: builder.query({
+      query: () => ({
+        url: "/exam_announcement/find_my_announcement_exam_list",
+        method: "GET",
+      }),
+      providesTags: ["assignments"],
+    }),
     updateTeacherAssignment: builder.mutation({
       query: ({ id, data }) => ({
         url: `/assignments/update_teacher_assignment/${id}`,
         method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ["assignments"],
+    }),
+    createTeacherAssignment: builder.mutation({
+      query: (data) => ({
+        url: "/assignments/create_assignment",
+        method: "POST",
         body: data,
       }),
       invalidatesTags: ["assignments"],
@@ -48,14 +63,34 @@ export const assignmentsApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["assignments"],
     }),
+    createExamAnnouncement: builder.mutation({
+      query: (data) => ({
+        url: "/exam_announcement/create_exam_announcement",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["assignments"],
+    }),
+    updateExamAnnouncement: builder.mutation({
+      query: ({ id, data }) => ({
+        url: `/exam_announcement/update_announcement_exam/${id}`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ["assignments"],
+    }),
   }),
 });
 
 export const { 
   useGetSpecificTeacherAssignmentsQuery, 
+  useGetMyAnnouncementExamListQuery,
   useUpdateTeacherAssignmentMutation, 
+  useCreateTeacherAssignmentMutation,
   useGetSpecificTeacherClassMaterialQuery,
   useDeleteClassMaterialsMutation,
   useUpdateSpecificClassMaterialMutation,
-  useCreateClassMaterialsMutation
+  useCreateClassMaterialsMutation,
+  useCreateExamAnnouncementMutation,
+  useUpdateExamAnnouncementMutation
 } = assignmentsApi;

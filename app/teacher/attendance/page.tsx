@@ -210,8 +210,8 @@ export default function TeacherAttendancePage() {
                                 <UserCheck className="mr-2 h-4 w-4" />
                                 Mark All Present
                             </Button>
-                            <Button 
-                                onClick={handleSave} 
+                            <Button
+                                onClick={handleSave}
                                 disabled={isUpdating}
                                 className="bg-emerald-500 hover:bg-emerald-600"
                             >
@@ -265,68 +265,68 @@ export default function TeacherAttendancePage() {
                                     student.staffs?.name?.toLowerCase().includes(searchQuery.toLowerCase())
                                 ).map((student: any) => (
                                     <tr key={student.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                    <td className="whitespace-nowrap py-4 pl-6 font-medium text-gray-900">{student.name}</td>
-                                    <td className="whitespace-nowrap py-4">
-                                        <div className="flex flex-col gap-1">
-                                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                <span className="font-medium">{student.staffs?.name || 'N/A'}</span>
+                                        <td className="whitespace-nowrap py-4 pl-6 font-medium text-gray-900">{student.name}</td>
+                                        <td className="whitespace-nowrap py-4">
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                    <span className="font-medium">{student.staffs?.name || 'N/A'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                    <Mail className="h-3 w-3" />
+                                                    <span>{student.staffs?.email || 'N/A'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                    <Phone className="h-3 w-3" />
+                                                    <span>{student.staffs?.phoneNumber || 'N/A'}</span>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                                                <Mail className="h-3 w-3" />
-                                                <span>{student.staffs?.email || 'N/A'}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                                                <Phone className="h-3 w-3" />
-                                                <span>{student.staffs?.phoneNumber || 'N/A'}</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="whitespace-nowrap py-4">
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => handleStatusChange(student.id, "present")}
-                                                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${attendance[student.id] === "present"
-                                                    ? "bg-green-500 text-white"
-                                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                                    }`}
-                                            >
-                                                Present
-                                            </button>
-                                            <button
-                                                onClick={() => handleStatusChange(student.id, "absent")}
-                                                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${attendance[student.id] === "absent"
-                                                    ? "bg-red-500 text-white"
-                                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                                    }`}
-                                            >
-                                                Absent
-                                            </button>
-                                            <button
-                                                onClick={() => handleStatusChange(student.id, "late")}
-                                                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${attendance[student.id] === "late"
-                                                    ? "bg-yellow-500 text-white"
-                                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                                    }`}
-                                            >
-                                                Late
-                                            </button>
-                                        </div>
-                                    </td>
-                                    <td className="whitespace-nowrap py-4 pr-6">
-                                        <div className="flex justify-end">
-                                            {attendance[student.id] === "absent" && (
-                                                <Button
-                                                    onClick={() => handleOpenEmailDialog(student)}
-                                                    size="sm"
-                                                    className="bg-emerald-500"
+                                        </td>
+                                        <td className="whitespace-nowrap py-4">
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => handleStatusChange(student.id, "present")}
+                                                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${attendance[student.id] === "present"
+                                                        ? "bg-green-500 text-white"
+                                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                                        }`}
                                                 >
-                                                    <Mail className="h-4 w-4" />
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            )))}
+                                                    Present
+                                                </button>
+                                                <button
+                                                    onClick={() => handleStatusChange(student.id, "absent")}
+                                                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${attendance[student.id] === "absent"
+                                                        ? "bg-red-500 text-white"
+                                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                                        }`}
+                                                >
+                                                    Absent
+                                                </button>
+                                                <button
+                                                    onClick={() => handleStatusChange(student.id, "late")}
+                                                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${attendance[student.id] === "late"
+                                                        ? "bg-yellow-500 text-white"
+                                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                                        }`}
+                                                >
+                                                    Late
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td className="whitespace-nowrap py-4 pr-6">
+                                            <div className="flex justify-end">
+                                                {attendance[student.id] === "absent" && (
+                                                    <Button
+                                                        onClick={() => handleOpenEmailDialog(student)}
+                                                        size="sm"
+                                                        className="bg-emerald-500"
+                                                    >
+                                                        <Mail className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )))}
                         </tbody>
                     </table>
                 </div>
