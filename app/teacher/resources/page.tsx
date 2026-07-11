@@ -200,9 +200,8 @@ export default function TeacherResourcesPage() {
                 return;
             }
 
-            const dataObj = {
+            const dataObj: any = {
                 assignmentTitle: editForm.materialName,
-                classDistributionId: selectedClassId,
                 materialType: editForm.materialType,
                 description: editForm.description,
                 external_link: editForm.external_link,
