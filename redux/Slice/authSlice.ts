@@ -12,12 +12,14 @@ interface AuthState {
   user: User | null;
   token: string | null;
   refreshToken: string | null;
+  subscriptionId: string | null;
 }
 
 const initialState: AuthState = {
   user: null,
   token: null,
   refreshToken: null,
+  subscriptionId: null,
 };
 
 export const authSlice = createSlice({
@@ -41,6 +43,7 @@ export const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.refreshToken = null;
+      state.subscriptionId = null;
 
       // Clear localStorage
       if (typeof window !== "undefined") {
@@ -49,10 +52,13 @@ export const authSlice = createSlice({
         localStorage.removeItem("user");
       }
     },
+    setSubscriptionId: (state, action: PayloadAction<string>) => {
+      state.subscriptionId = action.payload;
+    },
   },
 });
 
-export const { setUser, logout } = authSlice.actions;
+export const { setUser, logout, setSubscriptionId } = authSlice.actions;
 
 export default authSlice.reducer;
 

@@ -11,6 +11,7 @@ import { AddAnnouncementDialog } from "@/components/institution/announcements/ad
 import { TablePagination } from "@/components/common/table-pagination"
 import { AnnouncementsTable } from "@/components/institution/announcements/announcements-table"
 import { useGetAllAnnouncementsQuery } from "@/redux/features/announcements/announcementsApi"
+import { useSelector } from "react-redux"
 
 export default function AnnouncementsPage() {
     const [statusFilter, setStatusFilter] = useState("all")
@@ -20,7 +21,12 @@ export default function AnnouncementsPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null)
 
-    const { data: announcementsData, isLoading, isError } = useGetAllAnnouncementsQuery()
+    const { subscriptionId } = useSelector((state: any) => state.auth)
+
+    const { data: announcementsData, isLoading, isError, error } = useGetAllAnnouncementsQuery(subscriptionId, { skip: !subscriptionId })
+    console.log(announcementsData, "announcementsData")
+    console.log(error, "error in announcements")
+
     const fetchedAnnouncements: Announcement[] = (announcementsData?.data?.data || []).map((item: any) => ({
         id: item.id,
         title: item.title,
@@ -85,7 +91,10 @@ export default function AnnouncementsPage() {
                 {isLoading ? (
                     <div className="py-10 text-center text-gray-500">Loading announcements...</div>
                 ) : isError ? (
-                    <div className="py-10 text-center text-red-500">Failed to load announcements</div>
+                    <div className="py-10 text-center text-red-500">
+                        <p>Failed to load announcements</p>
+                        <p className="text-sm mt-2">{JSON.stringify(error)}</p>
+                    </div>
                 ) : (
                     <>
                         <AnnouncementsTable

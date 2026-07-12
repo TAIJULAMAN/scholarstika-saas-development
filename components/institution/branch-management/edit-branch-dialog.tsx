@@ -3,16 +3,12 @@
 import { useEffect, useState } from "react"
 import { X } from "lucide-react"
 
+import { InstitutionBranch } from "@/types/institution-branch"
+
 interface EditBranchDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    branch: {
-        id: string
-        name: string
-        type: string
-        location: string
-        contact: string
-    }
+    branch: InstitutionBranch
     onSubmit: (data: {
         id: string
         name: string

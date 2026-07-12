@@ -1,13 +1,31 @@
+import { useGetTotalCountOfInstitutionQuery } from "@/redux/features/institutionAndBranch/institutionDashboard/institutionDashboardApi"
+import { useGetMySubscriptionQuery } from "@/redux/features/institutionAndBranch/mySubscription/mySubscriptionApi"
 import { Building2, Users, GraduationCap, TrendingUp } from "lucide-react"
+import { useSelector } from "react-redux"
 
-const stats = [
-    { icon: Building2, label: "Total Branches", value: "24", change: "+12%", color: "text-green-600", bgColor: "bg-green-50" },
-    { icon: Users, label: "Total Students", value: "12,847", change: "+8%", color: "text-green-600", bgColor: "bg-green-50" },
-    { icon: GraduationCap, label: "Total Teachers", value: "247", change: "+5%", color: "text-green-600", bgColor: "bg-green-50" },
-    { icon: TrendingUp, label: "Total Earnings", value: "120,847", change: "-2%", color: "text-green-600", bgColor: "bg-green-50", negative: true },
-]
 
 export function DashboardStats() {
+
+    useGetMySubscriptionQuery(undefined)
+
+    const { subscriptionId } = useSelector((state: any) => state.auth)
+    console.log("subscriptionId of aman", subscriptionId);
+    const { data: institutionData, isLoading, isError } = useGetTotalCountOfInstitutionQuery(subscriptionId, {
+        skip: !subscriptionId
+    })
+    console.log("institutionData of aman", institutionData);
+
+    const data = institutionData?.data || {}
+
+    console.log("Data of aman", data);
+
+    const stats = [
+        { icon: Building2, label: "Total Branches", value: isLoading ? "..." : (data.totalTeacher || 0), color: "text-blue-600", bgColor: "bg-blue-50" },
+        { icon: Users, label: "Total Students", value: isLoading ? "..." : (data.totalStudent || 0), color: "text-green-600", bgColor: "bg-green-50" },
+        { icon: GraduationCap, label: "Total Teachers", value: isLoading ? "..." : (data.totalTeacher || 0), color: "text-orange-600", bgColor: "bg-orange-50" },
+        { icon: TrendingUp, label: "Total Earnings", value: isLoading ? "..." : `$${data.totalPaidAmount || 0}`, color: "text-purple-600", bgColor: "bg-purple-50" },
+    ]
+
     return (
         <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
             {stats.map((stat) => {
@@ -18,9 +36,6 @@ export function DashboardStats() {
                             <div className={`rounded-lg ${stat.bgColor} p-3`}>
                                 <Icon className={`h-6 w-6 ${stat.color}`} />
                             </div>
-                            <span className={`text-sm font-semibold ${stat.negative ? 'text-red-500' : 'text-green-500'}`}>
-                                {stat.change}
-                            </span>
                         </div>
                         <div className="mt-4">
                             <p className="text-sm text-gray-600">{stat.label}</p>

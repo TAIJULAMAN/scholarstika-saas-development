@@ -3,6 +3,9 @@
 import { useState } from "react"
 import { X } from "lucide-react"
 import type { Announcement } from "@/data/announcements"
+import { toast } from "sonner"
+import { useSelector } from "react-redux"
+import { useUpdateAnnouncementMutation } from "@/redux/features/announcements/announcementsApi"
 
 interface EditAnnouncementDialogProps {
     open: boolean
@@ -14,15 +17,32 @@ export function EditAnnouncementDialog({ open, onOpenChange, announcement }: Edi
     const [formData, setFormData] = useState({
         title: announcement.title,
         description: announcement.description,
-        branches: announcement.branches,
+        audience: announcement.audience?.[0] || "STUDENT",
         status: announcement.status,
     })
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const { subscriptionId } = useSelector((state: any) => state.auth)
+    const [updateAnnouncement, { isLoading }] = useUpdateAnnouncementMutation()
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        // In real app, this would call an API to update the announcement
-        console.log("Updating announcement:", announcement.id, formData)
-        onOpenChange(false)
+
+        try {
+            await updateAnnouncement({
+                id: announcement.id,
+                data: {
+                    title: formData.title,
+                    description: formData.description,
+                    audience: [formData.audience],
+                    subscriptionId,
+                }
+            }).unwrap()
+
+            toast.success("Announcement updated successfully")
+            onOpenChange(false)
+        } catch (error: any) {
+            toast.error(error?.data?.message || "Failed to update announcement")
+        }
     }
 
     if (!open) return null
@@ -69,15 +89,19 @@ export function EditAnnouncementDialog({ open, onOpenChange, announcement }: Edi
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700">
-                            Assigned Branches <span className="text-red-500">*</span>
+                            Audience <span className="text-red-500">*</span>
                         </label>
-                        <input
-                            type="text"
+                        <select
                             required
-                            value={formData.branches}
-                            onChange={(e) => setFormData({ ...formData, branches: e.target.value })}
+                            value={formData.audience}
+                            onChange={(e) => setFormData({ ...formData, audience: e.target.value })}
                             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-                        />
+                        >
+                            <option value="STUDENT">Student</option>
+                            <option value="PARENT">Parent</option>
+                            <option value="TEACHER">Teacher</option>
+                            <option value="BRANCH_ADMIN">Branch Admin</option>
+                        </select>
                     </div>
 
                     <div>
@@ -105,10 +129,11 @@ export function EditAnnouncementDialog({ open, onOpenChange, announcement }: Edi
                         </button>
                         <button
                             type="submit"
+                            disabled={isLoading}
                             style={{ backgroundColor: 'rgba(16, 185, 129, 0.8)' }}
-                            className="flex-1 rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                            className="flex-1 rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                         >
-                            Update
+                            {isLoading ? "Updating..." : "Update"}
                         </button>
                     </div>
                 </form>

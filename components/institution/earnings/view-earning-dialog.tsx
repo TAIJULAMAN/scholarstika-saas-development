@@ -2,7 +2,7 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { type BranchEarnings } from "@/data/earnings"
+import { type BranchEarnings } from "./earnings-table"
 import { Building2, MapPin, Users, DollarSign, AlertCircle } from "lucide-react"
 
 interface ViewEarningDialogProps {
@@ -12,8 +12,8 @@ interface ViewEarningDialogProps {
 }
 
 export function ViewEarningDialog({ open, onOpenChange, earning }: ViewEarningDialogProps) {
-    const totalAmount = earning.collected + earning.outstanding
-    const collectionRate = ((earning.collected / totalAmount) * 100).toFixed(1)
+    const totalAmount = earning.totalFees || (earning.totalPaid + earning.totalUnpaid)
+    const collectionRate = totalAmount > 0 ? ((earning.totalPaid / totalAmount) * 100).toFixed(1) : "0.0"
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -29,13 +29,9 @@ export function ViewEarningDialog({ open, onOpenChange, earning }: ViewEarningDi
                                 <Building2 className="h-6 w-6" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-gray-900">{earning.name}</h3>
+                                <h3 className="text-xl font-bold text-gray-900">{earning.branchName}</h3>
                                 <p className="text-sm text-gray-600">{earning.branchId}</p>
                             </div>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-700">
-                            <MapPin className="h-4 w-4" />
-                            <span className="text-sm">{earning.location}</span>
                         </div>
                     </div>
 
@@ -60,7 +56,7 @@ export function ViewEarningDialog({ open, onOpenChange, earning }: ViewEarningDi
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-600">Fees Collected</p>
-                                    <p className="text-2xl font-bold text-green-600">${earning.collected.toLocaleString()}</p>
+                                    <p className="text-2xl font-bold text-green-600">${earning.totalPaid.toLocaleString()}</p>
                                 </div>
                             </div>
                         </div>
@@ -72,7 +68,7 @@ export function ViewEarningDialog({ open, onOpenChange, earning }: ViewEarningDi
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-600">Outstanding Fees</p>
-                                    <p className="text-2xl font-bold text-orange-600">${earning.outstanding.toLocaleString()}</p>
+                                    <p className="text-2xl font-bold text-orange-600">${earning.totalUnpaid.toLocaleString()}</p>
                                 </div>
                             </div>
                         </div>
