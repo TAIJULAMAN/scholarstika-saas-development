@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { type BranchEarnings } from "@/data/earnings"
+import { type BranchEarnings } from "./earnings-table"
 
 interface EditEarningDialogProps {
     open: boolean
@@ -15,12 +15,11 @@ interface EditEarningDialogProps {
 
 export function EditEarningDialog({ open, onOpenChange, earning }: EditEarningDialogProps) {
     const [formData, setFormData] = useState({
-        name: earning.name,
+        branchName: earning.branchName,
         branchId: earning.branchId,
-        location: earning.location,
-        totalStudents: earning.totalStudents.toString(),
-        collected: earning.collected.toString(),
-        outstanding: earning.outstanding.toString(),
+        totalStudents: (earning.totalStudents || 0).toString(),
+        totalPaid: (earning.totalPaid || 0).toString(),
+        totalUnpaid: (earning.totalUnpaid || 0).toString(),
     })
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -38,11 +37,11 @@ export function EditEarningDialog({ open, onOpenChange, earning }: EditEarningDi
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                            <Label htmlFor="name">Branch Name</Label>
+                            <Label htmlFor="branchName">Branch Name</Label>
                             <Input
-                                id="name"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                id="branchName"
+                                value={formData.branchName}
+                                onChange={(e) => setFormData({ ...formData, branchName: e.target.value })}
                                 placeholder="Enter branch name"
                                 required
                             />
@@ -57,16 +56,7 @@ export function EditEarningDialog({ open, onOpenChange, earning }: EditEarningDi
                                 required
                             />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="location">Location</Label>
-                            <Input
-                                id="location"
-                                value={formData.location}
-                                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                placeholder="Enter location"
-                                required
-                            />
-                        </div>
+
                         <div className="space-y-2">
                             <Label htmlFor="totalStudents">Total Students</Label>
                             <Input
@@ -83,8 +73,8 @@ export function EditEarningDialog({ open, onOpenChange, earning }: EditEarningDi
                             <Input
                                 id="collected"
                                 type="number"
-                                value={formData.collected}
-                                onChange={(e) => setFormData({ ...formData, collected: e.target.value })}
+                                value={formData.totalPaid}
+                                onChange={(e) => setFormData({ ...formData, totalPaid: e.target.value })}
                                 placeholder="0.00"
                                 required
                             />
@@ -94,8 +84,8 @@ export function EditEarningDialog({ open, onOpenChange, earning }: EditEarningDi
                             <Input
                                 id="outstanding"
                                 type="number"
-                                value={formData.outstanding}
-                                onChange={(e) => setFormData({ ...formData, outstanding: e.target.value })}
+                                value={formData.totalUnpaid}
+                                onChange={(e) => setFormData({ ...formData, totalUnpaid: e.target.value })}
                                 placeholder="0.00"
                                 required
                             />

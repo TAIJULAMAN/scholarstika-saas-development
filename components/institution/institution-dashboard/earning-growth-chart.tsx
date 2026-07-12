@@ -12,17 +12,33 @@ import {
     Legend,
 } from "chart.js"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useGetEarningGrowthQuery } from "@/redux/features/institutionAndBranch/institutionDashboard/institutionDashboardApi"
+import { useSelector } from "react-redux"
+
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 export function EarningGrowthChart() {
-    const [selectedYear, setSelectedYear] = useState("2024")
+    const [selectedYear, setSelectedYear] = useState("2026")
+    const { subscriptionId } = useSelector((state: any) => state.auth)
+
+    const { data: earningGrowthData, isLoading } = useGetEarningGrowthQuery(
+        { year: selectedYear },
+        { skip: !subscriptionId }
+    )
+
+    const monthlyStats = earningGrowthData?.data?.monthlyStats || []
+    
+    // Default to 0 if data isn't ready
+    const chartDataValues = monthlyStats.length > 0 
+        ? monthlyStats.map((stat: any) => stat.amount)
+        : Array(12).fill(0)
 
     const data = {
         labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
         datasets: [
             {
                 label: "Revenue",
-                data: [10000, 25000, 20000, 45000, 30000, 55000, 40000, 65000, 50000, 55000, 60000, 70000],
+                data: chartDataValues,
                 backgroundColor: "rgba(16, 185, 129, 0.8)",
                 borderColor: "rgba(16, 185, 129, 1)",
                 borderWidth: 1,
@@ -97,6 +113,8 @@ export function EarningGrowthChart() {
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                        <SelectItem value="2026">2026</SelectItem>
+                        <SelectItem value="2025">2025</SelectItem>
                         <SelectItem value="2024">2024</SelectItem>
                         <SelectItem value="2023">2023</SelectItem>
                         <SelectItem value="2022">2022</SelectItem>
@@ -106,7 +124,11 @@ export function EarningGrowthChart() {
             </div>
             <div className="overflow-x-auto pb-4">
                 <div className="h-64 md:min-w-[600px] px-4 sm:px-6">
-                    <Bar data={data} options={options} />
+                    {isLoading ? (
+                        <div className="flex h-full items-center justify-center text-gray-500">Loading chart data...</div>
+                    ) : (
+                        <Bar data={data} options={options} />
+                    )}
                 </div>
             </div>
         </div>

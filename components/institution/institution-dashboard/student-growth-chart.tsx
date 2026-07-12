@@ -12,18 +12,33 @@ import {
     Legend,
 } from "chart.js"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useGetStudentGrowthQuery } from "@/redux/features/institutionAndBranch/institutionDashboard/institutionDashboardApi"
+import { useSelector } from "react-redux"
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 export function StudentGrowthChart() {
-    const [selectedYear, setSelectedYear] = useState("2024")
+    const [selectedYear, setSelectedYear] = useState("2026")
+    const { subscriptionId } = useSelector((state: any) => state.auth)
+
+    const { data: studentGrowthData, isLoading } = useGetStudentGrowthQuery(
+        { year: selectedYear },
+        { skip: !subscriptionId }
+    )
+
+    const monthlyStats = studentGrowthData?.data?.monthlyStats || []
+    
+    // Default to 0 if data isn't ready
+    const chartDataValues = monthlyStats.length > 0 
+        ? monthlyStats.map((stat: any) => stat.count)
+        : Array(12).fill(0)
 
     const data = {
         labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
         datasets: [
             {
                 label: "Students",
-                data: [10000, 12000, 14000, 16000, 18000, 20000, 22000, 24000, 26000, 28000, 30000, 32000],
+                data: chartDataValues,
                 backgroundColor: "rgba(16, 185, 129, 0.8)",
                 borderColor: "rgba(16, 185, 129, 1)",
                 borderWidth: 1,
@@ -98,6 +113,8 @@ export function StudentGrowthChart() {
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                        <SelectItem value="2026">2026</SelectItem>
+                        <SelectItem value="2025">2025</SelectItem>
                         <SelectItem value="2024">2024</SelectItem>
                         <SelectItem value="2023">2023</SelectItem>
                         <SelectItem value="2022">2022</SelectItem>
@@ -107,7 +124,11 @@ export function StudentGrowthChart() {
             </div>
             <div className="overflow-x-auto pb-4">
                 <div className="h-64 w-full md:min-w-[600px] px-4 sm:px-6">
-                    <Bar data={data} options={options} />
+                    {isLoading ? (
+                        <div className="flex h-full items-center justify-center text-gray-500">Loading chart data...</div>
+                    ) : (
+                        <Bar data={data} options={options} />
+                    )}
                 </div>
             </div>
         </div>
