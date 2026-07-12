@@ -49,5 +49,8 @@ export const baseApi = createApi({
     "institutionDashboard",
     "mySubscription",
     "earnings"
+    "teacherSchedule",
+    "teacherAttendance"
+
   ],
 });

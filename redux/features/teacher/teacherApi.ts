@@ -26,7 +26,29 @@ export const teacherApi = baseApi.injectEndpoints({
       }),
       providesTags: ["teacherSchedule"],
     }),
+    getTeacherAttendance: builder.query({
+      query: ({ classLevelId, date }: { classLevelId: string, date: string }) => ({
+        url: `/teacher/find_by_specific_student_attendance_of_teacher/${classLevelId}`,
+        method: "GET",
+        params: { date }
+      }),
+      providesTags: ["teacherAttendance"],
+    }),
+    updateTeacherAttendance: builder.mutation({
+      query: (data) => ({
+        url: "/teacher/update_student_attendance_of_teacher",
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ["teacherAttendance"],
+    }),
   }),
 });
 
-export const { useGetTeacherRecordingsQuery, useGetTeacherStudentsQuery, useGetTeacherScheduleQuery } = teacherApi;
+export const { 
+  useGetTeacherRecordingsQuery, 
+  useGetTeacherStudentsQuery, 
+  useGetTeacherScheduleQuery,
+  useGetTeacherAttendanceQuery,
+  useUpdateTeacherAttendanceMutation
+} = teacherApi;

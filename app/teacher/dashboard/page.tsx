@@ -4,37 +4,27 @@ import { Clock, Plus, FileText, CheckSquare, Calendar, ChevronRight } from "luci
 import { useRouter } from "next/navigation"
 import { DashboardAnnouncements } from "@/components/common/dashboard-announcements"
 import { useGetTeacherScheduleQuery } from "@/redux/features/teacher/teacherApi"
-
-const assignments = [
-    {
-        title: "Quadratic Equations - Chapter 5",
-        class: "Grade 10-A • Mathematics",
-        due: "Due: Dec 15, 2024",
-        status: "Pending",
-        statusColor: "bg-yellow-100 text-yellow-800",
-    },
-    {
-        title: "Newton's Laws Lab Report",
-        class: "Grade 11-B • Physics",
-        due: "Due: Dec 18, 2024",
-        status: "Overdue",
-        statusColor: "bg-red-100 text-red-800",
-    },
-    {
-        title: "Chemical Reactions Worksheet",
-        class: "Grade 10-C • Chemistry",
-        due: "Due: Dec 20, 2024",
-        status: "Completed",
-        statusColor: "bg-green-100 text-green-800",
-    },
-]
+import { useGetSpecificTeacherAssignmentsQuery } from "@/redux/features/assignments/assignmentsApi"
 
 export default function TeacherDashboardPage() {
     const router = useRouter()
 
-    const { data: scheduleData, isLoading: isScheduleLoading } = useGetTeacherScheduleQuery({});
+    const { data: scheduleData, isLoading: isScheduleLoading, isError: isScheduleError } = useGetTeacherScheduleQuery({});
+    const { data: assignmentsData, isLoading: isAssignmentsLoading, isError: isAssignmentsError } = useGetSpecificTeacherAssignmentsQuery({});
     
     const rawSchedule = scheduleData?.data?.data || [];
+    const rawAssignments = assignmentsData?.data?.data || [];
+    
+    const assignments = rawAssignments.slice(0, 3).map((a: any) => {
+        const isPastDue = new Date(a.assignmentDueDate) < new Date();
+        return {
+            title: a.assignmentTitle,
+            class: `${a.classDistributions?.classLevel || "N/A"} • ${a.assignmentType || "N/A"}`,
+            due: `Due: ${new Date(a.assignmentDueDate).toLocaleDateString()}`,
+            status: isPastDue ? "Completed" : "Pending",
+            statusColor: isPastDue ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800",
+        };
+    });
     const schedule = rawSchedule.map((item: any) => ({
         subject: item.assignableSubject || "N/A",
         grade: item.classLevel || "N/A",
@@ -67,6 +57,8 @@ export default function TeacherDashboardPage() {
                     <div className="space-y-3">
                         {isScheduleLoading ? (
                             <div className="text-sm text-gray-500">Loading schedule...</div>
+                        ) : isScheduleError ? (
+                            <div className="text-sm text-red-500">Failed to load schedule.</div>
                         ) : schedule.length > 0 ? (
                             schedule.map((item: any, index: number) => (
                                 <div
@@ -143,26 +135,34 @@ export default function TeacherDashboardPage() {
                         </button>
                     </div>
                     <div className="space-y-3">
-                        {assignments.map((assignment, index) => (
-                            <div
-                                key={index}
-                                className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50/50 p-4 transition-colors hover:bg-gray-50"
-                            >
-                                <div className="flex items-start gap-4">
-                                    <div>
-                                        <h3 className="font-bold text-gray-900">{assignment.title}</h3>
-                                        <p className="text-sm text-gray-500">{assignment.class}</p>
-                                        <p className="mt-1 text-xs text-gray-400">{assignment.due}</p>
+                        {isAssignmentsLoading ? (
+                            <div className="text-sm text-gray-500">Loading assignments...</div>
+                        ) : isAssignmentsError ? (
+                            <div className="text-sm text-red-500">Failed to load assignments.</div>
+                        ) : assignments.length > 0 ? (
+                            assignments.map((assignment: any, index: number) => (
+                                <div
+                                    key={index}
+                                    className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50/50 p-4 transition-colors hover:bg-gray-50"
+                                >
+                                    <div className="flex items-start gap-4">
+                                        <div>
+                                            <h3 className="font-bold text-gray-900">{assignment.title}</h3>
+                                            <p className="text-sm text-gray-500">{assignment.class}</p>
+                                            <p className="mt-1 text-xs text-gray-400">{assignment.due}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <span className={`rounded px-2.5 py-0.5 text-xs font-semibold ${assignment.statusColor}`}>
+                                            {assignment.status}
+                                        </span>
+                                        <ChevronRight className="h-5 w-5 text-gray-400" />
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4">
-                                    <span className={`rounded px-2.5 py-0.5 text-xs font-semibold ${assignment.statusColor}`}>
-                                        {assignment.status}
-                                    </span>
-                                    <ChevronRight className="h-5 w-5 text-gray-400" />
-                                </div>
-                            </div>
-                        ))}
+                            ))
+                        ) : (
+                            <div className="text-sm text-gray-500">No recent assignments found.</div>
+                        )}
                     </div>
                 </div>
 

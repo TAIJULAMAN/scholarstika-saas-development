@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/common/page-header"
@@ -12,61 +12,98 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Calendar, Save, Mail, Phone, UserCheck, UserX, Clock, Search } from "lucide-react"
 import { format } from "date-fns"
+import { useGetTeacherScheduleQuery, useGetTeacherAttendanceQuery, useUpdateTeacherAttendanceMutation } from "@/redux/features/teacher/teacherApi"
 
-const students = [
-    { id: 1, name: "John Smith", status: "present", parentName: "Robert Smith", parentEmail: "robert.smith@email.com", parentPhone: "+1 (555) 123-4567" },
-    { id: 2, name: "Emma Johnson", status: "present", parentName: "Sarah Johnson", parentEmail: "sarah.johnson@email.com", parentPhone: "+1 (555) 234-5678" },
-    { id: 3, name: "Michael Brown", status: "absent", parentName: "David Brown", parentEmail: "david.brown@email.com", parentPhone: "+1 (555) 345-6789" },
-    { id: 4, name: "Sophia Davis", status: "present", parentName: "Jennifer Davis", parentEmail: "jennifer.davis@email.com", parentPhone: "+1 (555) 456-7890" },
-    { id: 5, name: "William Wilson", status: "late", parentName: "James Wilson", parentEmail: "james.wilson@email.com", parentPhone: "+1 (555) 567-8901" },
-    { id: 6, name: "Olivia Martinez", status: "present", parentName: "Maria Martinez", parentEmail: "maria.martinez@email.com", parentPhone: "+1 (555) 678-9012" },
-    { id: 7, name: "James Anderson", status: "present", parentName: "Thomas Anderson", parentEmail: "thomas.anderson@email.com", parentPhone: "+1 (555) 789-0123" },
-    { id: 8, name: "Ava Taylor", status: "present", parentName: "Lisa Taylor", parentEmail: "lisa.taylor@email.com", parentPhone: "+1 (555) 890-1234" },
-]
+const EMPTY_ARRAY: any[] = [];
 
 export default function TeacherAttendancePage() {
-    const [selectedClass, setSelectedClass] = useState("Grade 10-A")
+    const [selectedClass, setSelectedClass] = useState("")
     const [selectedDate, setSelectedDate] = useState<Date>(new Date())
-    const [attendance, setAttendance] = useState<{ [key: number]: string }>(
-        Object.fromEntries(students.map(s => [s.id, s.status]))
-    )
-    const [selectedStudent, setSelectedStudent] = useState<typeof students[0] | null>(null)
+    const [attendance, setAttendance] = useState<{ [key: string]: string }>({})
+    const [selectedStudent, setSelectedStudent] = useState<any>(null)
     const [emailSubject, setEmailSubject] = useState("")
     const [emailMessage, setEmailMessage] = useState("")
     const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false)
     const [searchQuery, setSearchQuery] = useState("")
 
-    const handleStatusChange = (studentId: number, status: string) => {
+    const { data: scheduleData, isLoading: isScheduleLoading, isError: isScheduleError } = useGetTeacherScheduleQuery({});
+    const classes = scheduleData?.data?.data || EMPTY_ARRAY;
+
+    const { data: attendanceResponse, isLoading: isLoadingAttendance, isError: isAttendanceError } = useGetTeacherAttendanceQuery(selectedClass, {
+        skip: !selectedClass
+    });
+    const students = attendanceResponse?.data?.data || EMPTY_ARRAY;
+
+    const [updateAttendance, { isLoading: isUpdating }] = useUpdateTeacherAttendanceMutation();
+
+    useEffect(() => {
+        if (classes.length > 0 && !selectedClass) {
+            setSelectedClass(classes[0].id)
+        }
+    }, [classes, selectedClass])
+
+    useEffect(() => {
+        if (students.length > 0) {
+            const initial: any = {};
+            students.forEach((s: any) => {
+                initial[s.id] = s.attendanceStatus?.toLowerCase() || "absent";
+            });
+            setAttendance(initial);
+        } else {
+            setAttendance({});
+        }
+    }, [students])
+
+    const handleStatusChange = (studentId: string, status: string) => {
         setAttendance(prev => ({ ...prev, [studentId]: status }))
     }
 
     const handleMarkAllPresent = () => {
         const newAttendance = { ...attendance }
-        students.forEach(student => {
+        students.forEach((student: any) => {
             newAttendance[student.id] = "present"
         })
         setAttendance(newAttendance)
     }
 
-    const handleSave = () => {
-        console.log("Saving attendance:", { class: selectedClass, date: selectedDate, attendance })
-        alert("Attendance saved successfully!")
+    const handleSave = async () => {
+        if (!selectedClass) {
+            alert("Please select a class first");
+            return;
+        }
+
+        const payload = {
+            attendanceDate: format(selectedDate, 'yyyy-MM-dd'),
+            subscriptionId: selectedClass,
+            students: students.map((student: any) => ({
+                studentId: student.studentId,
+                attendanceStatus: (attendance[student.id] || "absent").toUpperCase()
+            }))
+        };
+
+        try {
+            await updateAttendance(payload).unwrap();
+            alert("Attendance updated successfully!");
+        } catch (error) {
+            console.error("Failed to update attendance", error);
+            alert("Failed to update attendance. Please try again.");
+        }
     }
 
-    const handleOpenEmailDialog = (student: typeof students[0]) => {
+    const handleOpenEmailDialog = (student: any) => {
         setSelectedStudent(student)
         setEmailSubject(`Absence Notification - ${student.name}`)
-        setEmailMessage(`Dear ${student.parentName},\n\nThis is to inform you that your child, ${student.name}, was marked absent on ${format(selectedDate, 'PPPP')}.\n\nIf you have any questions or concerns, please don't hesitate to contact us.\n\nBest regards,\nTeacher`)
+        setEmailMessage(`Dear ${student.staffs?.name || 'Parent'},\n\nThis is to inform you that your child, ${student.name}, was marked absent on ${format(selectedDate, 'PPPP')}.\n\nIf you have any questions or concerns, please don't hesitate to contact us.\n\nBest regards,\nTeacher`)
         setIsEmailDialogOpen(true)
     }
 
     const handleSendEmail = () => {
         if (selectedStudent) {
-            console.log("Sending email to:", selectedStudent.parentEmail, {
+            console.log("Sending email to:", selectedStudent.staffs?.email, {
                 subject: emailSubject,
                 message: emailMessage
             })
-            alert(`Email sent successfully to ${selectedStudent.parentName} (${selectedStudent.parentEmail})`)
+            alert(`Email sent successfully to ${selectedStudent.staffs?.name || 'Parent'} (${selectedStudent.staffs?.email || 'N/A'})`)
             setIsEmailDialogOpen(false)
             setSelectedStudent(null)
             setEmailSubject("")
@@ -85,16 +122,24 @@ export default function TeacherAttendancePage() {
             <div className="flex flex-wrap items-center gap-5 rounded-xl bg-white p-5 shadow-md">
                 <div className="flex-1">
                     <label className="mb-2 block text-sm font-medium text-gray-700">Select Class</label>
-                    <Select value={selectedClass} onValueChange={setSelectedClass}>
-                        <SelectTrigger className="w-full">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="Grade 10-A">Mathematics - Grade 10-A</SelectItem>
-                            <SelectItem value="Grade 10-B">Mathematics - Grade 10-B</SelectItem>
-                            <SelectItem value="Grade 11-A">Algebra - Grade 11-A</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    {isScheduleLoading ? (
+                        <div className="text-sm text-gray-500 py-2">Loading classes...</div>
+                    ) : isScheduleError ? (
+                        <div className="text-sm text-red-500 py-2">Failed to load classes.</div>
+                    ) : (
+                        <Select value={selectedClass} onValueChange={setSelectedClass}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select Class" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {classes.map((cls: any) => (
+                                    <SelectItem key={cls.id} value={cls.id}>
+                                        {cls.classLevel} - {cls.assignableSubject}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
                 </div>
                 <div className="flex-1">
                     <label className="mb-2 block text-sm font-medium text-gray-700">Select Date</label>
@@ -165,9 +210,13 @@ export default function TeacherAttendancePage() {
                                 <UserCheck className="mr-2 h-4 w-4" />
                                 Mark All Present
                             </Button>
-                            <Button onClick={handleSave} className="bg-emerald-500 hover:bg-emerald-600">
+                            <Button
+                                onClick={handleSave}
+                                disabled={isUpdating}
+                                className="bg-emerald-500 hover:bg-emerald-600"
+                            >
                                 <Save className="mr-2 h-4 w-4" />
-                                Save Attendance
+                                {isUpdating ? "Saving..." : "Save Attendance"}
                             </Button>
                         </div>
                     </div>
@@ -192,73 +241,92 @@ export default function TeacherAttendancePage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {students.filter(student =>
-                                student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                student.parentName.toLowerCase().includes(searchQuery.toLowerCase())
-                            ).map((student) => (
-                                <tr key={student.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                    <td className="whitespace-nowrap py-4 pl-6 font-medium text-gray-900">{student.name}</td>
-                                    <td className="whitespace-nowrap py-4">
-                                        <div className="flex flex-col gap-1">
-                                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                <span className="font-medium">{student.parentName}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                                                <Mail className="h-3 w-3" />
-                                                <span>{student.parentEmail}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                                                <Phone className="h-3 w-3" />
-                                                <span>{student.parentPhone}</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="whitespace-nowrap py-4">
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => handleStatusChange(student.id, "present")}
-                                                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${attendance[student.id] === "present"
-                                                    ? "bg-green-500 text-white"
-                                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                                    }`}
-                                            >
-                                                Present
-                                            </button>
-                                            <button
-                                                onClick={() => handleStatusChange(student.id, "absent")}
-                                                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${attendance[student.id] === "absent"
-                                                    ? "bg-red-500 text-white"
-                                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                                    }`}
-                                            >
-                                                Absent
-                                            </button>
-                                            <button
-                                                onClick={() => handleStatusChange(student.id, "late")}
-                                                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${attendance[student.id] === "late"
-                                                    ? "bg-yellow-500 text-white"
-                                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                                    }`}
-                                            >
-                                                Late
-                                            </button>
-                                        </div>
-                                    </td>
-                                    <td className="whitespace-nowrap py-4 pr-6">
-                                        <div className="flex justify-end">
-                                            {attendance[student.id] === "absent" && (
-                                                <Button
-                                                    onClick={() => handleOpenEmailDialog(student)}
-                                                    size="sm"
-                                                    className="bg-emerald-500"
-                                                >
-                                                    <Mail className="h-4 w-4" />
-                                                </Button>
-                                            )}
-                                        </div>
+                            {isLoadingAttendance ? (
+                                <tr>
+                                    <td colSpan={4} className="py-8 text-center text-gray-500">
+                                        Loading attendance data...
                                     </td>
                                 </tr>
-                            ))}
+                            ) : isAttendanceError ? (
+                                <tr>
+                                    <td colSpan={4} className="py-8 text-center text-red-500">
+                                        Failed to load attendance data.
+                                    </td>
+                                </tr>
+                            ) : students.length === 0 ? (
+                                <tr>
+                                    <td colSpan={4} className="py-8 text-center text-gray-500">
+                                        No students found.
+                                    </td>
+                                </tr>
+                            ) : (
+                                students.filter((student: any) =>
+                                    student.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                    student.staffs?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+                                ).map((student: any) => (
+                                    <tr key={student.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                        <td className="whitespace-nowrap py-4 pl-6 font-medium text-gray-900">{student.name}</td>
+                                        <td className="whitespace-nowrap py-4">
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                    <span className="font-medium">{student.staffs?.name || 'N/A'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                    <Mail className="h-3 w-3" />
+                                                    <span>{student.staffs?.email || 'N/A'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                    <Phone className="h-3 w-3" />
+                                                    <span>{student.staffs?.phoneNumber || 'N/A'}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="whitespace-nowrap py-4">
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => handleStatusChange(student.id, "present")}
+                                                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${attendance[student.id] === "present"
+                                                        ? "bg-green-500 text-white"
+                                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                                        }`}
+                                                >
+                                                    Present
+                                                </button>
+                                                <button
+                                                    onClick={() => handleStatusChange(student.id, "absent")}
+                                                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${attendance[student.id] === "absent"
+                                                        ? "bg-red-500 text-white"
+                                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                                        }`}
+                                                >
+                                                    Absent
+                                                </button>
+                                                <button
+                                                    onClick={() => handleStatusChange(student.id, "late")}
+                                                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${attendance[student.id] === "late"
+                                                        ? "bg-yellow-500 text-white"
+                                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                                        }`}
+                                                >
+                                                    Late
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td className="whitespace-nowrap py-4 pr-6">
+                                            <div className="flex justify-end">
+                                                {attendance[student.id] === "absent" && (
+                                                    <Button
+                                                        onClick={() => handleOpenEmailDialog(student)}
+                                                        size="sm"
+                                                        className="bg-emerald-500"
+                                                    >
+                                                        <Mail className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )))}
                         </tbody>
                     </table>
                 </div>
@@ -280,11 +348,11 @@ export default function TeacherAttendancePage() {
                                     </div>
                                     <div>
                                         <p className="text-sm font-medium text-gray-700">Parent</p>
-                                        <p className="text-sm text-gray-900">{selectedStudent.parentName}</p>
+                                        <p className="text-sm text-gray-900">{selectedStudent.staffs?.name || 'N/A'}</p>
                                     </div>
                                     <div className="col-span-2">
                                         <p className="text-sm font-medium text-gray-700">Email Address</p>
-                                        <p className="text-sm text-gray-900">{selectedStudent.parentEmail}</p>
+                                        <p className="text-sm text-gray-900">{selectedStudent.staffs?.email || 'N/A'}</p>
                                     </div>
                                 </div>
                             </div>
