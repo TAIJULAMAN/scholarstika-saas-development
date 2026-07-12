@@ -2,6 +2,9 @@
 
 import { useState } from "react"
 import { X } from "lucide-react"
+import { toast } from "sonner"
+import { useSelector } from "react-redux"
+import { useCreateAnnouncementMutation } from "@/redux/features/announcements/announcementsApi"
 
 interface AddAnnouncementDialogProps {
     open: boolean
@@ -13,21 +16,38 @@ export function AddAnnouncementDialog({ open, onOpenChange }: AddAnnouncementDia
         title: "",
         description: "",
         branches: "",
+        audience: "STUDENT",
         status: "Active" as "Active" | "Archived",
     })
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const { subscriptionId } = useSelector((state: any) => state.auth)
+    console.log("subscriptionId in", subscriptionId)
+    const [createAnnouncement, { isLoading }] = useCreateAnnouncementMutation()
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        // In real app, this would call an API to create the announcement
-        console.log("Creating announcement:", formData)
-        onOpenChange(false)
-        // Reset form
-        setFormData({
-            title: "",
-            description: "",
-            branches: "",
-            status: "Active",
-        })
+
+        try {
+            await createAnnouncement({
+                title: formData.title,
+                description: formData.description,
+                audience: [formData.audience],
+                subscriptionId,
+            }).unwrap()
+
+            toast.success("Announcement created successfully")
+            onOpenChange(false)
+            // Reset form
+            setFormData({
+                title: "",
+                description: "",
+                branches: "",
+                audience: "STUDENT",
+                status: "Active",
+            })
+        } catch (error: any) {
+            toast.error(error?.data?.message || "Failed to create announcement")
+        }
     }
 
     if (!open) return null
@@ -76,16 +96,19 @@ export function AddAnnouncementDialog({ open, onOpenChange }: AddAnnouncementDia
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700">
-                            Assigned Branches <span className="text-red-500">*</span>
+                            Audience <span className="text-red-500">*</span>
                         </label>
-                        <input
-                            type="text"
+                        <select
                             required
-                            value={formData.branches}
-                            onChange={(e) => setFormData({ ...formData, branches: e.target.value })}
+                            value={formData.audience}
+                            onChange={(e) => setFormData({ ...formData, audience: e.target.value })}
                             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-                            placeholder="e.g., All Branches or Downtown Campus"
-                        />
+                        >
+                            <option value="STUDENT">Student</option>
+                            <option value="PARENT">Parent</option>
+                            <option value="TEACHER">Teacher</option>
+                            <option value="BRANCH_ADMIN">Branch Admin</option>
+                        </select>
                     </div>
 
                     <div>
@@ -113,10 +136,11 @@ export function AddAnnouncementDialog({ open, onOpenChange }: AddAnnouncementDia
                         </button>
                         <button
                             type="submit"
+                            disabled={isLoading}
                             style={{ backgroundColor: 'rgba(16, 185, 129, 0.8)' }}
-                            className="flex-1 rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                            className="flex-1 rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                         >
-                            Add Announcement
+                            {isLoading ? "Adding..." : "Add Announcement"}
                         </button>
                     </div>
                 </form>

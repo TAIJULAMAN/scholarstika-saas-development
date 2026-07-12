@@ -147,7 +147,7 @@ export function BranchesTable({ branchId }: BranchesTableProps) {
                                 </td>
                             </tr>
                         )}
-                        {currentBranches.map((branch) => (
+                        {currentBranches.map((branch: any) => (
                             <tr key={branch.id} className="border-b border-gray-100 transition-colors hover:bg-gray-50">
                                 <td className="whitespace-nowrap py-6 pl-6">
                                     <p className="font-medium text-gray-900">{branch.name}</p>
@@ -202,13 +202,13 @@ export function BranchesTable({ branchId }: BranchesTableProps) {
                                         >
                                             <Pencil className="h-4 w-4" />
                                         </button>
-                                        <button
+                                        {/* <button
                                             onClick={() => handlePriceOverride(branch)}
                                             className="rounded-lg p-2 text-amber-600 transition-colors hover:bg-amber-50"
                                             title="Override Price"
                                         >
                                             <DollarSign className="h-4 w-4" />
-                                        </button>
+                                        </button> */}
                                         <button
                                             onClick={() => handleDelete(branch)}
                                             className="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50"

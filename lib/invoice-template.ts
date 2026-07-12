@@ -1,4 +1,4 @@
-import { BranchEarnings } from "@/data/earnings"
+import { BranchEarnings } from "@/components/institution/earnings/earnings-table"
 
 export function generateInvoiceHTML(earning: BranchEarnings): string {
     const currentDate = new Date().toLocaleDateString('en-US', {
@@ -7,8 +7,8 @@ export function generateInvoiceHTML(earning: BranchEarnings): string {
         day: 'numeric'
     })
     const invoiceNumber = `INV-${earning.branchId}-${Date.now().toString().slice(-6)}`
-    const totalAmount = earning.collected + earning.outstanding
-    const collectionRate = ((earning.collected / totalAmount) * 100).toFixed(1)
+    const totalAmount = earning.totalPaid + earning.totalUnpaid
+    const collectionRate = totalAmount > 0 ? ((earning.totalPaid / totalAmount) * 100).toFixed(1) : "0.0"
 
     return `
 <!DOCTYPE html>
@@ -16,7 +16,7 @@ export function generateInvoiceHTML(earning: BranchEarnings): string {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice - ${earning.name}</title>
+    <title>Invoice - ${earning.branchName}</title>
     <style>
         * {
             margin: 0;
@@ -281,9 +281,8 @@ export function generateInvoiceHTML(earning: BranchEarnings): string {
             </div>
             
             <div class="branch-details">
-                <h3>${earning.name}</h3>
+                <h3>${earning.branchName}</h3>
                 <p><strong>Branch ID:</strong> ${earning.branchId}</p>
-                <p><strong>Location:</strong> ${earning.location}</p>
             </div>
         </div>
         
@@ -298,11 +297,11 @@ export function generateInvoiceHTML(earning: BranchEarnings): string {
                 </div>
                 <div class="summary-card success">
                     <label>Fees Collected</label>
-                    <div class="value">$${earning.collected.toLocaleString()}</div>
+                    <div class="value">$${earning.totalPaid.toLocaleString()}</div>
                 </div>
                 <div class="summary-card warning">
                     <label>Outstanding Fees</label>
-                    <div class="value">$${earning.outstanding.toLocaleString()}</div>
+                    <div class="value">$${earning.totalUnpaid.toLocaleString()}</div>
                 </div>
                 <div class="summary-card">
                     <label>Total Amount</label>
@@ -333,11 +332,11 @@ export function generateInvoiceHTML(earning: BranchEarnings): string {
                 <tbody>
                     <tr>
                         <td>Tuition Fees Collected</td>
-                        <td class="amount">$${earning.collected.toLocaleString()}</td>
+                        <td class="amount">$${earning.totalPaid.toLocaleString()}</td>
                     </tr>
                     <tr>
                         <td>Outstanding Fees</td>
-                        <td class="amount">$${earning.outstanding.toLocaleString()}</td>
+                        <td class="amount">$${earning.totalUnpaid.toLocaleString()}</td>
                     </tr>
                     <tr class="total-row">
                         <td>Total Amount</td>
@@ -390,7 +389,8 @@ export function downloadInvoiceAsPDF(earning: BranchEarnings) {
                 html2canvas: {
                     scale: 2,
                     useCORS: true,
-                    letterRendering: true
+                    letterRendering: true,
+                    logging: false
                 },
                 jsPDF: {
                     unit: 'mm',
@@ -398,6 +398,25 @@ export function downloadInvoiceAsPDF(earning: BranchEarnings) {
                     orientation: 'portrait' as const
                 }
             }
+
+            // Suppress html2canvas unsupported color function warnings temporarily
+            const originalConsoleError = console.error;
+            const originalConsoleWarn = console.warn;
+            
+            const suppressWarning = (...args: any[]) => {
+                if (typeof args[0] === 'string' && args[0].includes('unsupported color function')) {
+                    return true;
+                }
+                return false;
+            };
+
+            console.error = (...args: any[]) => {
+                if (!suppressWarning(...args)) originalConsoleError(...args);
+            };
+            
+            console.warn = (...args: any[]) => {
+                if (!suppressWarning(...args)) originalConsoleWarn(...args);
+            };
 
             // Generate PDF
             html2pdf.default()
@@ -407,10 +426,14 @@ export function downloadInvoiceAsPDF(earning: BranchEarnings) {
                 .then(() => {
                     // Clean up
                     document.body.removeChild(container)
+                    console.error = originalConsoleError;
+                    console.warn = originalConsoleWarn;
                 })
                 .catch((error: Error) => {
-                    console.error('Error generating PDF:', error)
+                    originalConsoleError('Error generating PDF:', error)
                     document.body.removeChild(container)
+                    console.error = originalConsoleError;
+                    console.warn = originalConsoleWarn;
                 })
         })
     } else {

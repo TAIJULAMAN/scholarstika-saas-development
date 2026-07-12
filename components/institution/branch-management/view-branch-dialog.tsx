@@ -2,19 +2,12 @@
 
 import { X, MapPin, Phone, Users, GraduationCap, TrendingUp, DollarSign } from "lucide-react"
 
+import { InstitutionBranch } from "@/types/institution-branch"
+
 interface ViewBranchDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    branch: {
-        name: string
-        type: string
-        location: string
-        contact: string
-        students: string
-        teachers: string
-        attendance: string
-        earnings: string
-    }
+    branch: InstitutionBranch
 }
 
 export function ViewBranchDialog({ open, onOpenChange, branch }: ViewBranchDialogProps) {

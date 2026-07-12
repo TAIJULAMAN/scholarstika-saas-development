@@ -3,27 +3,29 @@
 import { useState, useMemo } from "react"
 import { Building2, DollarSign, AlertCircle, FileText } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { branchEarnings } from "@/data/earnings"
+import { useGetBranchTotalEarningsQuery } from "@/redux/features/institutionAndBranch/earnings/earningsApi"
 
 export function EarningsStats() {
     const [selectedBranch, setSelectedBranch] = useState("all")
+    const { data: earningsData, isLoading } = useGetBranchTotalEarningsQuery()
+
     const { stats } = useMemo(() => {
-        const allBranches = branchEarnings.length
-        const allCollected = branchEarnings.reduce((sum, branch) => sum + branch.collected, 0)
-        const allOutstanding = branchEarnings.reduce((sum, branch) => sum + branch.outstanding, 0)
-        const allStudents = branchEarnings.reduce((sum, branch) => sum + branch.totalStudents, 0)
+        const branches = earningsData?.data?.data || []
+        const overview = earningsData?.data?.overview || {
+            totalBranch: 0,
+            totalStudents: 0,
+            totalFees: 0,
+            totalPaid: 0,
+            totalUnpaid: 0
+        }
 
         if (selectedBranch === "all") {
             return {
-                totalBranches: allBranches,
-                totalCollected: allCollected,
-                totalOutstanding: allOutstanding,
-                totalStudents: allStudents,
                 stats: [
                     {
                         icon: Building2,
                         label: "Total Branches",
-                        value: allBranches.toString(),
+                        value: overview.totalBranch.toString(),
                         badge: "Active",
                         badgeColor: "bg-green-100 text-green-700",
                         bgColor: "bg-blue-50",
@@ -32,41 +34,37 @@ export function EarningsStats() {
                     {
                         icon: DollarSign,
                         label: "Fees Collected",
-                        value: `$${allCollected.toLocaleString()}`,
+                        value: `$${overview.totalPaid.toLocaleString()}`,
                         color: "text-green-600",
                         bgColor: "bg-green-50",
                     },
                     {
                         icon: AlertCircle,
                         label: "Outstanding Fees",
-                        value: `$${allOutstanding.toLocaleString()}`,
+                        value: `$${overview.totalUnpaid.toLocaleString()}`,
                         color: "text-orange-600",
                         bgColor: "bg-orange-50",
                     },
                     {
                         icon: FileText,
                         label: "Total Students",
-                        value: allStudents.toLocaleString(),
+                        value: overview.totalStudents.toLocaleString(),
                         color: "text-purple-600",
                         bgColor: "bg-purple-50",
                     },
                 ]
             }
         } else {
-            const branch = branchEarnings.find(b => b.id.toString() === selectedBranch)
-            if (!branch) return { totalBranches: allBranches, totalCollected: allCollected, totalOutstanding: allOutstanding, totalStudents: allStudents, stats: [] }
+            const branch = branches.find((b: any) => b.branchId === selectedBranch)
+            if (!branch) return { stats: [] }
 
             return {
-                totalBranches: allBranches,
-                totalCollected: allCollected,
-                totalOutstanding: allOutstanding,
-                totalStudents: allStudents,
                 stats: [
                     {
                         icon: Building2,
                         label: "Branch",
-                        value: branch.name,
-                        badge: branch.branchId,
+                        value: branch.branchName,
+                        badge: "Active",
                         badgeColor: "bg-green-50 text-green-600",
                         bgColor: "bg-green-50",
                         color: "text-green-600",
@@ -74,14 +72,14 @@ export function EarningsStats() {
                     {
                         icon: DollarSign,
                         label: "Fees Collected",
-                        value: `$${branch.collected.toLocaleString()}`,
+                        value: `$${branch.totalPaid.toLocaleString()}`,
                         color: "text-green-600",
                         bgColor: "bg-green-50",
                     },
                     {
                         icon: AlertCircle,
                         label: "Outstanding Fees",
-                        value: `$${branch.outstanding.toLocaleString()}`,
+                        value: `$${branch.totalUnpaid.toLocaleString()}`,
                         color: "text-green-600",
                         bgColor: "bg-green-50",
                     },
@@ -95,7 +93,7 @@ export function EarningsStats() {
                 ]
             }
         }
-    }, [selectedBranch])
+    }, [selectedBranch, earningsData])
 
     return (
         <div className="space-y-5">
@@ -108,9 +106,9 @@ export function EarningsStats() {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Branches</SelectItem>
-                        {branchEarnings.map((branch) => (
-                            <SelectItem key={branch.id} value={branch.id.toString()}>
-                                {branch.name}
+                        {(earningsData?.data?.data || []).map((branch: any) => (
+                            <SelectItem key={branch.branchId} value={branch.branchId}>
+                                {branch.branchName}
                             </SelectItem>
                         ))}
                     </SelectContent>
