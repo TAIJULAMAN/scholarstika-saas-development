@@ -5,6 +5,7 @@ import './globals.css'
 import { ChatPopup } from '@/components/common/chat-popup';
 import { UserProvider } from '@/context/user-context';
 import ReduxProvider from '@/redux/ReduxProvider';
+import { Toaster } from '@/components/ui/sonner';
 
 const roboto = Roboto({
   weight: ['300', '400', '500', '700'],
@@ -49,6 +50,7 @@ export default function RootLayout({
             {children}
             <ChatPopup />
             <Analytics />
+            <Toaster position="top-center" />
           </UserProvider>
         </ReduxProvider>
       </body>

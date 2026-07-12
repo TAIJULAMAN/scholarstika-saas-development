@@ -5,23 +5,27 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { User, Mail, Phone, MapPin, GraduationCap, BookOpen, Users, Edit, Key } from "lucide-react"
 import { EditProfileDialog } from "@/components/teacher/profile/edit-profile-dialog"
 import { ChangePasswordDialog } from "@/components/teacher/profile/change-password-dialog"
+import { useGetMyProfileQuery } from "@/redux/features/auth/authApi"
 
 export default function TeacherProfilePage() {
     const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false)
 
+    const { data: profileResponse, isLoading } = useGetMyProfileQuery({});
+    const profile = profileResponse?.data || {};
+
     // Teacher data
     const teacherData = {
-        name: "Sarah Johnson",
-        employeeId: "TCH-2024-042",
-        email: "sarah.johnson@school.edu",
-        phone: "+1 (555) 789-0123",
-        address: "123 Education Street, Springfield, IL 62701",
-        avatar: "/avatars/teacher.jpg",
-        subject: "Mathematics",
-        qualification: "M.Sc. in Mathematics",
-        experience: "8 years",
-        joiningDate: "September 1, 2016"
+        name: profile.teacherName || "N/A",
+        employeeId: profile.teacherId || "N/A",
+        email: profile.email || "N/A",
+        phone: profile.phoneNumber || "N/A",
+        address: profile.address || "N/A",
+        avatar: profile.photo || "",
+        subject: profile.subject?.join(', ') || "N/A",
+        qualification: profile.qualification || "N/A",
+        experience: profile.experience || "N/A",
+        joiningDate: profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : "N/A"
     }
 
     // Teaching stats
@@ -31,6 +35,14 @@ export default function TeacherProfilePage() {
         { label: "Subjects", value: "2", icon: GraduationCap, color: "purple" },
         { label: "Experience", value: "8 Years", icon: User, color: "orange" }
     ]
+
+    if (isLoading) {
+        return (
+            <div className="flex h-[400px] items-center justify-center">
+                <div className="text-gray-500">Loading profile data...</div>
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-6">
@@ -68,7 +80,7 @@ export default function TeacherProfilePage() {
                     <div className="flex flex-col items-center gap-4 md:w-64">
                         <Avatar className="h-32 w-32 border-4 border-gray-200">
                             <AvatarImage src={teacherData.avatar} />
-                            <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-600 text-3xl text-white">
+                            <AvatarFallback className="bg-linear-to-br from-emerald-500 to-teal-600 text-3xl text-white">
                                 {teacherData.name.split(' ').map(n => n[0]).join('')}
                             </AvatarFallback>
                         </Avatar>

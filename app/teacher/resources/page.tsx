@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { FileText, Play, Link as LinkIcon, Download, Eye, Pencil, Trash2, Plus, File } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
@@ -9,80 +9,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 
-const materials = [
-    {
-        id: 1,
-        name: "Introduction to Algorithms",
-        type: "PDF",
-        uploaded: "Jan 15, 2024",
-        size: "2.4 MB",
-        icon: FileText,
-        iconColor: "text-red-600",
-        bgColor: "bg-red-50",
-        typeBadge: "bg-red-100 text-red-700",
-        description: "Comprehensive guide to algorithm design and analysis"
-    },
-    {
-        id: 2,
-        name: "Data Structures Lecture Notes",
-        type: "DOCX",
-        uploaded: "Jan 12, 2024",
-        size: "1.8 MB",
-        icon: FileText,
-        iconColor: "text-blue-600",
-        bgColor: "bg-blue-50",
-        typeBadge: "bg-blue-100 text-blue-700",
-        description: "Complete lecture notes covering all data structures"
-    },
-    {
-        id: 3,
-        name: "Programming Tutorial Video",
-        type: "MP4",
-        uploaded: "Jan 10, 2024",
-        size: "45.2 MB",
-        icon: Play,
-        iconColor: "text-purple-600",
-        bgColor: "bg-purple-50",
-        typeBadge: "bg-purple-100 text-purple-700",
-        description: "Step-by-step programming tutorial for beginners"
-    },
-    {
-        id: 4,
-        name: "Assignment Guidelines",
-        type: "PDF",
-        uploaded: "Jan 08, 2024",
-        size: "856 KB",
-        icon: FileText,
-        iconColor: "text-red-600",
-        bgColor: "bg-red-50",
-        typeBadge: "bg-red-100 text-red-700",
-        description: "Detailed guidelines for completing assignments"
-    },
-    {
-        id: 5,
-        name: "Online Coding Platform",
-        type: "Link",
-        uploaded: "Jan 05, 2024",
-        size: "-",
-        icon: LinkIcon,
-        iconColor: "text-emerald-600",
-        bgColor: "bg-emerald-50",
-        typeBadge: "bg-emerald-100 text-emerald-700",
-        description: "Interactive coding platform for practice"
-    },
-    {
-        id: 6,
-        name: "Exam Preparation Guide",
-        type: "DOCX",
-        uploaded: "Jan 03, 2024",
-        size: "3.1 MB",
-        icon: FileText,
-        iconColor: "text-blue-600",
-        bgColor: "bg-blue-50",
-        typeBadge: "bg-blue-100 text-blue-700",
-        description: "Comprehensive exam preparation materials"
-    },
-]
+import { useGetTeacherScheduleQuery } from "@/redux/features/teacher/teacherApi"
+import { useGetSpecificTeacherClassMaterialQuery, useDeleteClassMaterialsMutation, useCreateClassMaterialsMutation, useUpdateSpecificClassMaterialMutation } from "@/redux/features/assignments/assignmentsApi"
+import { toast } from "sonner"
 
 const stats = [
     {
@@ -124,21 +53,199 @@ export default function TeacherResourcesPage() {
     const [isViewModalOpen, setIsViewModalOpen] = useState(false)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-    const [selectedMaterial, setSelectedMaterial] = useState<typeof materials[0] | null>(null)
+    const [selectedMaterial, setSelectedMaterial] = useState<any>(null)
 
-    const handleView = (material: typeof materials[0]) => {
+    // API calls
+    const [createMaterial, { isLoading: isCreating }] = useCreateClassMaterialsMutation();
+    const [updateMaterial, { isLoading: isUpdating }] = useUpdateSpecificClassMaterialMutation();
+    const [deleteMaterial, { isLoading: isDeleting }] = useDeleteClassMaterialsMutation();
+
+    const [editForm, setEditForm] = useState({
+        materialName: "",
+        materialType: "pdf",
+        description: "",
+        external_link: "",
+    });
+    const [editFile, setEditFile] = useState<File | null>(null);
+    const { data: classesResponse, isLoading: isClassesLoading } = useGetTeacherScheduleQuery({});
+
+    const [createForm, setCreateForm] = useState({
+        materialName: "",
+        classDistributionId: "",
+        materialType: "pdf",
+        description: "",
+        external_link: "",
+    });
+    const [createFile, setCreateFile] = useState<File | null>(null);
+
+    const handleCreateMaterial = async () => {
+        try {
+            if (!createForm.materialName) {
+                alert("Please provide a material name.");
+                return;
+            }
+            if (!createForm.classDistributionId) {
+                alert("Please select a class for the material.");
+                return;
+            }
+            if (!createForm.description) {
+                alert("Please provide a description.");
+                return;
+            }
+
+            const dataObj = {
+                assignmentTitle: createForm.materialName,
+                classDistributionId: createForm.classDistributionId,
+                materialType: createForm.materialType,
+                description: createForm.description,
+                external_link: createForm.external_link,
+                materialFiles: [],
+            };
+
+            const formData = new FormData();
+            formData.append("data", JSON.stringify(dataObj));
+            if (createFile) {
+                formData.append("materialFiles", createFile);
+            } else if (createForm.materialType !== "link") {
+                alert("Please select an attachment! The backend strictly requires 'materialFiles' to be present.");
+                return;
+            }
+
+            await createMaterial(formData).unwrap();
+            setIsAddModalOpen(false);
+            setCreateForm({
+                materialName: "",
+                classDistributionId: selectedClassId || "",
+                materialType: "pdf",
+                description: "",
+                external_link: "",
+            });
+            setCreateFile(null);
+            toast.success("Material added successfully");
+        } catch (error: any) {
+            console.error("Failed to create material:", error);
+            const errorMessage = error?.data?.errorMessages?.[0]?.message || 
+                                 error?.data?.message || 
+                                 "Failed to add material. Please try again.";
+            alert(`Error: ${errorMessage}`);
+        }
+    };
+    const classesList = classesResponse?.data?.data || [];
+
+    const [selectedClassId, setSelectedClassId] = useState<string>("");
+
+    // Set first class as default selected
+    useEffect(() => {
+        if (classesList.length > 0 && !selectedClassId) {
+            setSelectedClassId(classesList[0].id);
+        }
+    }, [classesList, selectedClassId]);
+
+    const { data: materialsResponse, isLoading: isMaterialsLoading } = useGetSpecificTeacherClassMaterialQuery(selectedClassId, {
+        skip: !selectedClassId
+    });
+    const rawMaterialsList = materialsResponse?.data?.data || [];
+
+    // Helper to determine material type UI config
+    const getMaterialTypeConfig = (type: string) => {
+        const t = (type || '').toLowerCase();
+        if (t === 'pdf') return { type: 'PDF', icon: FileText, iconColor: "text-red-600", bgColor: "bg-red-50", typeBadge: "bg-red-100 text-red-700" };
+        if (t === 'docx' || t === 'doc') return { type: 'DOCX', icon: FileText, iconColor: "text-blue-600", bgColor: "bg-blue-50", typeBadge: "bg-blue-100 text-blue-700" };
+        if (t === 'mp4' || t === 'video') return { type: 'Video', icon: Play, iconColor: "text-purple-600", bgColor: "bg-purple-50", typeBadge: "bg-purple-100 text-purple-700" };
+        if (t === 'link' || t === 'external_link') return { type: 'Link', icon: LinkIcon, iconColor: "text-emerald-600", bgColor: "bg-emerald-50", typeBadge: "bg-emerald-100 text-emerald-700" };
+        return { type: t.toUpperCase() || 'FILE', icon: File, iconColor: "text-gray-600", bgColor: "bg-gray-50", typeBadge: "bg-gray-100 text-gray-700" };
+    }
+
+    const materials = rawMaterialsList.map((m: any, index: number) => {
+        const config = getMaterialTypeConfig(m.materialType);
+        return {
+            id: m.id,
+            name: m.assignmentTitle || m.description || `Material #${index + 1}`,
+            originalType: m.materialType,
+            type: config.type,
+            uploaded: m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'N/A',
+            size: m.materialFiles?.length > 0 ? "File Attached" : "-",
+            icon: config.icon,
+            iconColor: config.iconColor,
+            bgColor: config.bgColor,
+            typeBadge: config.typeBadge,
+            description: m.description || 'No description available',
+            external_link: m.external_link,
+            materialFiles: m.materialFiles,
+        };
+    });
+
+    const handleView = (material: any) => {
         setSelectedMaterial(material)
         setIsViewModalOpen(true)
     }
 
-    const handleEdit = (material: typeof materials[0]) => {
-        setSelectedMaterial(material)
-        setIsEditModalOpen(true)
-    }
+    const handleEdit = (material: any) => {
+        setSelectedMaterial(material);
+        setEditForm({
+            materialName: material.name.startsWith('Material #') ? "" : material.name,
+            materialType: material.originalType || "pdf",
+            description: material.description || "",
+            external_link: material.external_link || "",
+        });
+        setEditFile(null);
+        setIsEditModalOpen(true);
+    };
 
-    const handleDelete = (material: typeof materials[0]) => {
+    const handleUpdateMaterial = async () => {
+        if (!selectedMaterial?.id) return;
+        try {
+            if (!editForm.materialName) {
+                alert("Please provide a material name.");
+                return;
+            }
+
+            const dataObj: any = {
+                assignmentTitle: editForm.materialName,
+                materialType: editForm.materialType,
+                description: editForm.description,
+                external_link: editForm.external_link,
+            };
+
+            const formData = new FormData();
+            formData.append("data", JSON.stringify(dataObj));
+            if (editFile) {
+                formData.append("materialFiles", editFile);
+            }
+
+            await updateMaterial({ id: selectedMaterial.id, data: formData }).unwrap();
+            setIsEditModalOpen(false);
+            setEditFile(null);
+            toast.success("Material updated successfully");
+        } catch (error: any) {
+            console.error("Failed to update material:", error);
+            const errorMessage = error?.data?.errorMessages?.[0]?.message || 
+                                 error?.data?.message || 
+                                 "Failed to update material. Please try again.";
+            alert(`Error: ${errorMessage}`);
+        }
+    };
+
+    const handleDelete = (material: any) => {
         setSelectedMaterial(material)
         setIsDeleteModalOpen(true)
+    }
+
+    const handleConfirmDelete = async () => {
+        if (!selectedMaterial?.id) return
+
+        try {
+            const res = await deleteMaterial(selectedMaterial.id).unwrap()
+            if (res?.success) {
+                toast.success(res?.message || "Material deleted successfully")
+                setIsDeleteModalOpen(false)
+                setSelectedMaterial(null)
+            } else {
+                toast.error(res?.message || "Failed to delete material")
+            }
+        } catch (error: any) {
+            toast.error(error?.data?.message || error?.message || "Failed to delete material")
+        }
     }
 
     return (
@@ -151,28 +258,26 @@ export default function TeacherResourcesPage() {
             {/* Selection Controls */}
             <div className="grid gap-4 rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100 md:grid-cols-2">
                 <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700">Select Course</label>
-                    <Select defaultValue="cs101">
-                        <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select Course" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="cs101">Computer Science 101</SelectItem>
-                            <SelectItem value="math101">Mathematics 101</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700">Select Section</label>
-                    <Select defaultValue="secA">
-                        <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select Section" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="secA">Section A</SelectItem>
-                            <SelectItem value="secB">Section B</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Select Class</label>
+                    {isClassesLoading ? (
+                        <div className="h-10 w-full animate-pulse rounded-md bg-gray-100"></div>
+                    ) : (
+                        <Select
+                            value={selectedClassId}
+                            onValueChange={setSelectedClassId}
+                        >
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select Class" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {classesList.map((cls: any) => (
+                                    <SelectItem key={cls.id} value={cls.id}>
+                                        {cls.classLevel} - {cls.assignableSubject} ({cls.roomNumber})
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
                 </div>
             </div>
 
@@ -198,7 +303,10 @@ export default function TeacherResourcesPage() {
             <div className="rounded-xl bg-white shadow-sm ring-1 ring-gray-100">
                 <div className="flex items-center justify-between border-b border-gray-100 p-6">
                     <h2 className="text-lg font-bold text-gray-900">Course Materials</h2>
-                    <Button className="bg-emerald-500" onClick={() => setIsAddModalOpen(true)}>
+                    <Button className="bg-emerald-500" onClick={() => {
+                        setCreateForm(prev => ({ ...prev, classDistributionId: selectedClassId }));
+                        setIsAddModalOpen(true);
+                    }}>
                         <Plus className="mr-2 h-4 w-4" />
                         Add New Material
                     </Button>
@@ -215,77 +323,68 @@ export default function TeacherResourcesPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                            {materials.map((material) => (
-                                <tr key={material.id} className="group transition-colors hover:bg-gray-50">
-                                    <td className="px-6 py-4">
-                                        <div className="font-medium text-gray-900">
-                                            {material.name}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2">
-                                            <div className={`rounded p-1 ${material.bgColor}`}>
-                                                <material.icon className={`h-4 w-4 ${material.iconColor}`} />
-                                            </div>
-                                            <span className={`rounded px-2 py-0.5 text-xs font-semibold uppercase ${material.typeBadge}`}>
-                                                {material.type}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-600">{material.uploaded}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-600">{material.size}</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <button
-                                                onClick={() => handleView(material)}
-                                                className="rounded p-2 text-blue-500 hover:bg-blue-50"
-                                                title="View"
-                                            >
-                                                <Eye className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleEdit(material)}
-                                                className="rounded p-2 text-emerald-600 hover:bg-emerald-50"
-                                                title="Edit"
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(material)}
-                                                className="rounded p-2 text-red-500 hover:bg-red-50"
-                                                title="Delete"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </div>
+                            {isMaterialsLoading ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
+                                        Loading materials...
                                     </td>
                                 </tr>
-                            ))}
+                            ) : materials.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
+                                        No materials found for this class.
+                                    </td>
+                                </tr>
+                            ) : (
+                                materials.map((material: any) => (
+                                    <tr key={material.id} className="group transition-colors hover:bg-gray-50">
+                                        <td className="px-6 py-4">
+                                            <div className="font-medium text-gray-900 line-clamp-1 max-w-[300px]" title={material.name}>
+                                                {material.name}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`rounded p-1 ${material.bgColor}`}>
+                                                    <material.icon className={`h-4 w-4 ${material.iconColor}`} />
+                                                </div>
+                                                <span className={`rounded px-2 py-0.5 text-xs font-semibold uppercase ${material.typeBadge}`}>
+                                                    {material.type}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-600">{material.uploaded}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-600">{material.size}</td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleView(material)}
+                                                    className="rounded p-2 text-blue-500 hover:bg-blue-50"
+                                                    title="View"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleEdit(material)}
+                                                    className="rounded p-2 text-emerald-600 hover:bg-emerald-50"
+                                                    title="Edit"
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(material)}
+                                                    className="rounded p-2 text-red-500 hover:bg-red-50"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
-                </div>
-
-                {/* Pagination */}
-                <div className="flex justify-end border-t border-gray-100 p-4">
-                    <div className="flex gap-2">
-                        <button className="flex h-8 w-8 items-center justify-center rounded border border-gray-200 hover:bg-gray-50 text-gray-500">
-                            <span className="sr-only">Previous</span>
-                            &lt;
-                        </button>
-                        <button className="flex h-8 w-8 items-center justify-center rounded bg-emerald-500 text-white shadow-sm">
-                            1
-                        </button>
-                        <button className="flex h-8 w-8 items-center justify-center rounded border border-gray-200 hover:bg-gray-50 text-gray-600">
-                            2
-                        </button>
-                        <button className="flex h-8 w-8 items-center justify-center rounded border border-gray-200 hover:bg-gray-50 text-gray-600">
-                            3
-                        </button>
-                        <button className="flex h-8 w-8 items-center justify-center rounded border border-gray-200 hover:bg-gray-50 text-gray-500">
-                            <span className="sr-only">Next</span>
-                            &gt;
-                        </button>
-                    </div>
                 </div>
             </div>
 
@@ -298,12 +397,38 @@ export default function TeacherResourcesPage() {
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
                             <Label htmlFor="materialName">Material Name</Label>
-                            <Input id="materialName" placeholder="e.g., Introduction to Algorithms" />
+                            <Input 
+                                id="materialName" 
+                                placeholder="e.g., Introduction to Algorithms" 
+                                value={createForm.materialName}
+                                onChange={(e) => setCreateForm({ ...createForm, materialName: e.target.value })}
+                            />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Select Class</Label>
+                            <Select 
+                                value={createForm.classDistributionId}
+                                onValueChange={(val) => setCreateForm({ ...createForm, classDistributionId: val })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Class" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {classesList.map((c: any) => (
+                                        <SelectItem key={c.id} value={c.id}>
+                                            {c.classLevel} - {c.assignableSubject}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="materialType">Material Type</Label>
-                                <Select>
+                                <Select 
+                                    value={createForm.materialType}
+                                    onValueChange={(val) => setCreateForm({ ...createForm, materialType: val })}
+                                >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select type" />
                                     </SelectTrigger>
@@ -315,23 +440,47 @@ export default function TeacherResourcesPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="uploadDate">Upload Date</Label>
-                                <Input id="uploadDate" type="date" />
-                            </div>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="description">Description</Label>
-                            <Textarea id="description" placeholder="Enter material description..." rows={3} />
+                            <Textarea 
+                                id="description" 
+                                placeholder="Enter material description..." 
+                                rows={3} 
+                                value={createForm.description}
+                                onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                            />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="fileUpload">Upload File</Label>
-                            <Input id="fileUpload" type="file" />
-                        </div>
+                        {createForm.materialType === "link" ? (
+                            <div className="space-y-2">
+                                <Label htmlFor="externalLink">External Link</Label>
+                                <Input 
+                                    id="externalLink" 
+                                    placeholder="https://..." 
+                                    value={createForm.external_link}
+                                    onChange={(e) => setCreateForm({ ...createForm, external_link: e.target.value })}
+                                />
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <Label htmlFor="fileUpload">Upload File</Label>
+                                <Input 
+                                    id="fileUpload" 
+                                    type="file" 
+                                    onChange={(e) => setCreateFile(e.target.files?.[0] || null)}
+                                />
+                            </div>
+                        )}
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
-                        <Button className="bg-emerald-600 hover:bg-emerald-700">Add Material</Button>
+                        <Button 
+                            className="bg-emerald-600 hover:bg-emerald-700" 
+                            onClick={handleCreateMaterial}
+                            disabled={isCreating}
+                        >
+                            {isCreating ? "Adding..." : "Add Material"}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -348,6 +497,11 @@ export default function TeacherResourcesPage() {
                                 <div className="flex-1">
                                     <h3 className="text-lg font-bold text-gray-900">{selectedMaterial?.name}</h3>
                                     <p className="text-sm text-gray-600 mt-1">{selectedMaterial?.description}</p>
+                                    {selectedMaterial?.external_link && (
+                                        <a href={selectedMaterial.external_link} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline mt-2 block">
+                                            {selectedMaterial.external_link}
+                                        </a>
+                                    )}
                                 </div>
                                 {selectedMaterial && (
                                     <div className={`rounded p-2 ${selectedMaterial.bgColor}`}>
@@ -370,19 +524,17 @@ export default function TeacherResourcesPage() {
                                     <span className="font-medium text-gray-700">Uploaded:</span>
                                     <span className="ml-2 text-gray-900">{selectedMaterial?.uploaded}</span>
                                 </div>
-                                <div>
-                                    <span className="font-medium text-gray-700">Downloads:</span>
-                                    <span className="ml-2 text-gray-900">45</span>
-                                </div>
                             </div>
                         </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>Close</Button>
-                        <Button className="bg-emerald-600 hover:bg-emerald-700">
-                            <Download className="mr-2 h-4 w-4" />
-                            Download
-                        </Button>
+                        {selectedMaterial?.materialFiles && selectedMaterial.materialFiles.length > 0 && (
+                            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={() => window.open(selectedMaterial.materialFiles[0], '_blank')}>
+                                <Download className="mr-2 h-4 w-4" />
+                                Download File
+                            </Button>
+                        )}
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -396,40 +548,70 @@ export default function TeacherResourcesPage() {
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
                             <Label htmlFor="editMaterialName">Material Name</Label>
-                            <Input id="editMaterialName" defaultValue={selectedMaterial?.name} />
+                            <Input 
+                                id="editMaterialName" 
+                                value={editForm.materialName} 
+                                onChange={(e) => setEditForm({ ...editForm, materialName: e.target.value })}
+                            />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="editMaterialType">Material Type</Label>
-                                <Select defaultValue={selectedMaterial?.type.toLowerCase()}>
+                                <Select 
+                                    value={editForm.materialType}
+                                    onValueChange={(val) => setEditForm({ ...editForm, materialType: val })}
+                                >
                                     <SelectTrigger>
-                                        <SelectValue />
+                                        <SelectValue placeholder="Select type" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="pdf">PDF Document</SelectItem>
                                         <SelectItem value="docx">Word Document</SelectItem>
-                                        <SelectItem value="mp4">Video File</SelectItem>
+                                        <SelectItem value="video">Video File</SelectItem>
                                         <SelectItem value="link">External Link</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="editUploadDate">Upload Date</Label>
-                                <Input id="editUploadDate" type="date" />
-                            </div>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="editDescription">Description</Label>
-                            <Textarea id="editDescription" defaultValue={selectedMaterial?.description} rows={3} />
+                            <Textarea 
+                                id="editDescription" 
+                                value={editForm.description} 
+                                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                                rows={3} 
+                            />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="editFileUpload">Replace File (Optional)</Label>
-                            <Input id="editFileUpload" type="file" />
-                        </div>
+                        {editForm.materialType === "link" ? (
+                            <div className="space-y-2">
+                                <Label htmlFor="editExternalLink">External Link</Label>
+                                <Input 
+                                    id="editExternalLink" 
+                                    placeholder="https://..." 
+                                    value={editForm.external_link}
+                                    onChange={(e) => setEditForm({ ...editForm, external_link: e.target.value })}
+                                />
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <Label htmlFor="editFileUpload">Replace File (Optional)</Label>
+                                <Input 
+                                    id="editFileUpload" 
+                                    type="file" 
+                                    onChange={(e) => setEditFile(e.target.files?.[0] || null)}
+                                />
+                            </div>
+                        )}
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-                        <Button className="bg-emerald-600 hover:bg-emerald-700">Save Changes</Button>
+                        <Button 
+                            className="bg-emerald-600 hover:bg-emerald-700" 
+                            onClick={handleUpdateMaterial}
+                            disabled={isUpdating}
+                        >
+                            {isUpdating ? "Saving..." : "Save Changes"}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -450,8 +632,10 @@ export default function TeacherResourcesPage() {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>Cancel</Button>
-                        <Button className="bg-red-600 hover:bg-red-700">Delete Material</Button>
+                        <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)} disabled={isDeleting}>Cancel</Button>
+                        <Button className="bg-red-600 hover:bg-red-700" onClick={handleConfirmDelete} disabled={isDeleting}>
+                            {isDeleting ? "Deleting..." : "Delete Material"}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
