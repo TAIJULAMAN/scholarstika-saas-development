@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TeacherStats } from "@/components/institution/teacher-management/teacher-stats"
 import { TeachersTable } from "@/components/institution/teacher-management/teachers-table"
-import { PageHeader } from "@/components/common/page-header"
+import { useGetAllTeachersQuery } from "@/redux/features/institutionAndBranch/teacher/teacherApi"
 
 const branchOptions = [
     { value: "all", label: "All Branches" },
@@ -26,30 +26,32 @@ const branchOptions = [
 ]
 
 export default function TeachersPage() {
-    const [selectedBranch, setSelectedBranch] = useState("all")
+    const { data: teachersResponse, isLoading, isError } = useGetAllTeachersQuery(undefined)
+
+    const fetchedTeachers = (teachersResponse?.data?.data || []).map((teacher: any) => ({
+        id: teacher.id,
+        name: teacher.teacherName,
+        email: teacher.email,
+        branch: teacher.branchName || "N/A",
+        subject: Array.isArray(teacher.subject) ? teacher.subject.join(", ") : (teacher.subject || "N/A"),
+        phone: teacher.phoneNumber || "N/A",
+        address: teacher.address || "N/A",
+        avatar: teacher.photo
+    }))
+
+    const totalTeachers = teachersResponse?.data?.meta?.total || fetchedTeachers.length
 
     return (
         <div className="space-y-6">
-            {/* <PageHeader
-                title="Teacher Management"
-                description="Manage and monitor all your institution teachers"
-            /> */}
-            <div className="flex justify-end">
-                <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select branch" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {branchOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-            <TeacherStats branchId={selectedBranch} />
-            <TeachersTable />
+            {isLoading ? (
+                <div className="py-10 text-center text-gray-500">Loading teachers...</div>
+            ) : isError ? (
+                <div className="py-10 text-center text-red-500">
+                    <p>Failed to load teachers</p>
+                </div>
+            ) : (
+                <TeachersTable teachersData={fetchedTeachers} totalTeachers={totalTeachers} />
+            )}
         </div>
     )
 }

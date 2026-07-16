@@ -13,22 +13,26 @@ const mySubscriptionApi = baseApi.injectEndpoints({
             async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
+                    
+                    try {
+                        let subId = data?.data?.id;
 
-                    let subId = data?.data?.id;
-
-                    if (subId) {
-                        dispatch(setSubscriptionId(subId));
-                    } else {
-                        const token = data?.data?.currentSubscriptionToken;
-                        if (token && typeof token === 'string') {
-                            const decoded: any = jwtDecode(token);
-                            if (decoded?.subscriptionId) {
-                                dispatch(setSubscriptionId(decoded.subscriptionId));
+                        if (subId) {
+                            dispatch(setSubscriptionId(subId));
+                        } else {
+                            const token = data?.data?.currentSubscriptionToken;
+                            if (token && typeof token === 'string') {
+                                const decoded: any = jwtDecode(token);
+                                if (decoded?.subscriptionId) {
+                                    dispatch(setSubscriptionId(decoded.subscriptionId));
+                                }
                             }
                         }
+                    } catch (parseError) {
+                        console.error("Failed to parse or decode subscription info", parseError);
                     }
                 } catch (error) {
-                    console.error("Failed to parse or decode subscription info", error);
+                    // Ignore queryFulfilled errors, let RTK Query handle them
                 }
             },
         }),

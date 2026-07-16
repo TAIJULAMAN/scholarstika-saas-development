@@ -18,7 +18,7 @@ import {
     useGetMyBranchAdminsQuery,
     useUpdateBranchAdminMutation,
 } from "@/redux/features/branchManagement/branchManagementApi"
-import { BranchAdmin, BranchAdminFormData, BranchOption } from "@/types/branch-admin"
+import { BranchAdmin, BranchAdminFormData } from "@/types/branch-admin"
 
 export default function StaffManagementPage() {
     const [searchQuery, setSearchQuery] = useState("")
@@ -29,7 +29,7 @@ export default function StaffManagementPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [selectedManager, setSelectedManager] = useState<BranchAdmin | null>(null)
 
-    const itemsPerPage = 8
+    const itemsPerPage = 10
     const { data: branchAdminsResponse, isLoading } = useGetMyBranchAdminsQuery({
         page: currentPage,
         limit: itemsPerPage,
@@ -45,13 +45,14 @@ export default function StaffManagementPage() {
     const meta = branchAdminsPayload?.meta
     const totalPages = Math.max(meta?.totalPage || 1, 1)
     const totalItems = meta?.total || 0
-    const branchOptions: BranchOption[] = (branchOptionsResponse?.data || branchOptionsResponse || []) as BranchOption[]
+    const branchOptionsRaw = branchOptionsResponse?.data?.data || branchOptionsResponse?.data || branchOptionsResponse || []
+    const branchOptions = Array.isArray(branchOptionsRaw) ? branchOptionsRaw : []
 
     const branchCodeMap = useMemo(
         () =>
             new Map(
-                branchOptions.map((branch) => [
-                    branch.name,
+                branchOptions.map((branch: any) => [
+                    branch.schoolName || branch.name,
                     branch.id.slice(0, 8).toUpperCase(),
                 ]),
             ),
@@ -159,7 +160,6 @@ export default function StaffManagementPage() {
                                 <th className="whitespace-nowrap pb-3 pt-3 text-left text-sm font-semibold text-white min-w-[150px]">Branch</th>
                                 <th className="whitespace-nowrap pb-3 pt-3 text-left text-sm font-semibold text-white min-w-[200px]">Contact</th>
                                 <th className="whitespace-nowrap pb-3 pt-3 text-left text-sm font-semibold text-white min-w-[120px]">Joined Date</th>
-                                <th className="whitespace-nowrap pb-3 pt-3 text-left text-sm font-semibold text-white min-w-[100px]">Status</th>
                                 <th className="whitespace-nowrap rounded-tr-lg pb-3 pr-10 pt-3 text-right text-sm font-semibold text-white min-w-[100px]">Actions</th>
                             </tr>
                         </thead>
@@ -210,14 +210,6 @@ export default function StaffManagementPage() {
                                             month: 'short',
                                             day: 'numeric'
                                         })}
-                                    </td>
-                                    <td className="whitespace-nowrap py-6">
-                                        <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${manager.status === "ACTIVE"
-                                            ? "bg-green-100 text-green-800"
-                                            : "bg-gray-100 text-gray-700"
-                                            }`}>
-                                            {manager.status === "ACTIVE" ? "Active" : manager.status}
-                                        </span>
                                     </td>
                                     <td className="whitespace-nowrap py-6 pr-6">
                                         <div className="flex items-center justify-end gap-2">

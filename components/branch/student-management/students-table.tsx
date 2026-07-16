@@ -54,7 +54,8 @@ export function StudentsTable() {
         () => listPayload?.data ?? [],
         [listPayload]
     )
-    const branchOptions: BranchOption[] = (branchOptionsResponse?.data || branchOptionsResponse || []) as BranchOption[]
+    const branchOptionsRaw = branchOptionsResponse?.data?.data || branchOptionsResponse?.data || branchOptionsResponse || []
+    const branchOptions = Array.isArray(branchOptionsRaw) ? branchOptionsRaw : []
     const meta = listPayload?.meta ?? {
         page: currentPage,
         limit: itemsPerPage,

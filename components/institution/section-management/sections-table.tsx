@@ -71,7 +71,7 @@ const sections = [
     },
 ]
 
-export function SectionsTable() {
+export function SectionsTable({ sectionsData, totalSections }: { sectionsData?: any[], totalSections?: number }) {
     const [gradeFilter, setGradeFilter] = useState("all")
     const [statusFilter, setStatusFilter] = useState("all")
     const [searchQuery, setSearchQuery] = useState("")
@@ -81,17 +81,18 @@ export function SectionsTable() {
     const [selectedSection, setSelectedSection] = useState<typeof sections[0] | null>(null)
 
     const filteredSections = useMemo(() => {
-        return sections.filter(section => {
+        const sourceData = sectionsData || sections;
+        return sourceData.filter(section => {
             const matchesGrade = gradeFilter === "all" || section.grade === gradeFilter
             const matchesStatus = statusFilter === "all" || section.status.toLowerCase() === statusFilter
             const matchesSearch = searchQuery === "" ||
                 section.grade.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                section.section.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                section.classTeacher.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                section.room.toLowerCase().includes(searchQuery.toLowerCase())
+                (section.section && section.section.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                (section.classTeacher && section.classTeacher.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                (section.room && section.room.toLowerCase().includes(searchQuery.toLowerCase()))
             return matchesGrade && matchesStatus && matchesSearch
         })
-    }, [gradeFilter, statusFilter, searchQuery])
+    }, [gradeFilter, statusFilter, searchQuery, sectionsData])
 
     const itemsPerPage = 6
     const totalPages = Math.ceil(filteredSections.length / itemsPerPage)
@@ -108,7 +109,7 @@ export function SectionsTable() {
         <>
             <div className="rounded-xl bg-white py-4 shadow-sm sm:py-6">
                 <div className="mb-4 flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-                    <h2 className="text-lg font-semibold text-gray-900">All Sections</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">All Sections({totalSections !== undefined ? totalSections : filteredSections.length})</h2>
                     <div className="flex items-center gap-2"    >
                         <div className="relative flex-1 w-full sm:min-w-[250px]">
                             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -141,6 +142,7 @@ export function SectionsTable() {
                                     <td className="whitespace-nowrap py-6 pl-6">
                                         <div>
                                             <p className="font-medium text-gray-900">{section.grade} - {section.section}</p>
+                                            <p className="text-xs text-gray-500">{section.day} • {section.time}</p>
                                         </div>
                                     </td>
                                     <td className="whitespace-nowrap py-6 text-sm text-gray-700">{section.classTeacher}</td>

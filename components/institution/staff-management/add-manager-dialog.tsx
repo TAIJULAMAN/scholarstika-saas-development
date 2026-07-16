@@ -38,6 +38,7 @@ export function AddManagerDialog({
         subscriptionId: "",
     })
     const [formError, setFormError] = useState("")
+    const [selectedBranchId, setSelectedBranchId] = useState<string>("")
 
     const availableBranches = useMemo(
         () => branchOptions.filter((branch) => !branch.hasAssignedAdmin),
@@ -58,6 +59,7 @@ export function AddManagerDialog({
         setFormError("")
         setShowPassword(false)
         setShowConfirmPassword(false)
+        setSelectedBranchId("")
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -153,13 +155,14 @@ export function AddManagerDialog({
                         <div className="space-y-2">
                             <Label htmlFor="branch">Assign Branch *</Label>
                             <Select
-                                value={formData.assignBranch}
+                                value={selectedBranchId}
                                 onValueChange={(value) => {
-                                    const selectedBranch = branchOptions.find((branch) => branch.name === value)
+                                    setSelectedBranchId(value)
+                                    const selectedBranch = branchOptions.find((branch: any) => branch.id === value || branch.subscriptionId === value)
                                     setFormData({
                                         ...formData,
-                                        assignBranch: value,
-                                        subscriptionId: selectedBranch?.subscriptionId || "",
+                                        assignBranch: selectedBranch?.schoolName || selectedBranch?.name || "",
+                                        subscriptionId: selectedBranch?.subscriptionId || selectedBranch?.id || "",
                                     })
                                 }}
                             >
@@ -167,11 +170,15 @@ export function AddManagerDialog({
                                     <SelectValue placeholder="Select a branch" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {availableBranches.map((branch) => (
-                                        <SelectItem key={branch.id} value={branch.name}>
-                                            {branch.name}
-                                        </SelectItem>
-                                    ))}
+                                    {availableBranches.map((branch: any, index) => {
+                                        const branchName = branch.schoolName || branch.name || `Unnamed Branch ${index}`;
+                                        const uniqueValue = branch.id || branch.subscriptionId || `branch-${index}`;
+                                        return (
+                                            <SelectItem key={uniqueValue} value={uniqueValue}>
+                                                {branchName}
+                                            </SelectItem>
+                                        )
+                                    })}
                                 </SelectContent>
                             </Select>
                         </div>
