@@ -14,7 +14,7 @@ export function BranchStats({ branchId, payload, isLoading }: BranchStatsProps) 
         statsData = payload?.overall || {};
     } else {
         const branch = payload?.data?.find((b: any) => b.id === branchId);
-        statsData = branch?.statistics || {};
+        statsData = branch?.statistics || branch || {};
     }
 
     const formatCurrency = (value: number) =>
@@ -28,7 +28,7 @@ export function BranchStats({ branchId, payload, isLoading }: BranchStatsProps) 
         {
             icon: Users,
             label: branchId === "all" ? "Total Students" : "Students",
-            value: isLoading ? "..." : new Intl.NumberFormat("en-US").format(statsData?.totalStudent ?? statsData?.totalStudents ?? 0),
+            value: isLoading ? "..." : new Intl.NumberFormat("en-US").format(statsData?.totalStudent ?? statsData?.totalStudents ?? statsData?.students ?? 0),
             change: statsData?.studentChange || "+0%",
             color: "text-green-600",
             bgColor: "bg-green-50",
@@ -36,7 +36,7 @@ export function BranchStats({ branchId, payload, isLoading }: BranchStatsProps) 
         {
             icon: GraduationCap,
             label: branchId === "all" ? "Total Teachers" : "Teachers",
-            value: isLoading ? "..." : new Intl.NumberFormat("en-US").format(statsData?.totalTeacher ?? statsData?.totalTeachers ?? 0),
+            value: isLoading ? "..." : new Intl.NumberFormat("en-US").format(statsData?.totalTeacher ?? statsData?.totalTeachers ?? statsData?.teachers ?? 0),
             change: statsData?.teacherChange || "+0%",
             color: "text-green-600",
             bgColor: "bg-green-50",
@@ -44,7 +44,7 @@ export function BranchStats({ branchId, payload, isLoading }: BranchStatsProps) 
         {
             icon: TrendingUp,
             label: branchId === "all" ? "Avg Attendance" : "Attendance",
-            value: isLoading ? "..." : `${statsData?.averageAttendance || 0}%`,
+            value: isLoading ? "..." : `${statsData?.averageAttendance ?? statsData?.attendance ?? 0}%`,
             change: statsData?.attendanceChange || "+0%",
             color: "text-green-600",
             bgColor: "bg-green-50",
@@ -52,7 +52,7 @@ export function BranchStats({ branchId, payload, isLoading }: BranchStatsProps) 
         {
             icon: DollarSign,
             label: branchId === "all" ? "Total Earning" : "Earning",
-            value: isLoading ? "..." : formatCurrency(statsData?.totalEarnings || 0),
+            value: isLoading ? "..." : formatCurrency(statsData?.totalEarnings ?? statsData?.earnings ?? 0),
             change: statsData?.earningsChange || "+0%",
             color: "text-green-600",
             bgColor: "bg-green-50",
