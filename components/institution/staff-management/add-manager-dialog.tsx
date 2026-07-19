@@ -161,8 +161,8 @@ export function AddManagerDialog({
                                     const selectedBranch = branchOptions.find((branch: any) => branch.id === value || branch.subscriptionId === value)
                                     setFormData({
                                         ...formData,
-                                        assignBranch: selectedBranch?.schoolName || selectedBranch?.name || "",
-                                        subscriptionId: selectedBranch?.subscriptionId || selectedBranch?.id || "",
+                                        assignBranch: selectedBranch?.schoolName || selectedBranch?.name || selectedBranch?.branchName || "",
+                                        subscriptionId: selectedBranch?.subscriptionId || "",
                                     })
                                 }}
                             >
@@ -171,8 +171,8 @@ export function AddManagerDialog({
                                 </SelectTrigger>
                                 <SelectContent>
                                     {availableBranches.map((branch: any, index) => {
-                                        const branchName = branch.schoolName || branch.name || `Unnamed Branch ${index}`;
-                                        const uniqueValue = branch.id || branch.subscriptionId || `branch-${index}`;
+                                        const branchName = branch.schoolName || branch.name || branch.branchName || `Unnamed Branch ${index}`;
+                                        const uniqueValue = branch.id || `branch-${index}`;
                                         return (
                                             <SelectItem key={uniqueValue} value={uniqueValue}>
                                                 {branchName}
