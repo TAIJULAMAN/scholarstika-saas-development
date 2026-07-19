@@ -4,6 +4,8 @@ import { useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SectionStats } from "@/components/institution/section-management/section-stats"
 import { SectionsTable } from "@/components/institution/section-management/sections-table"
+import { useGetAllSectionsAndClassesQuery } from "@/redux/features/institutionAndBranch/sectionAndClasses/sectionAndClassesApi"
+import { useSelector } from "react-redux"
 
 const branchOptions = [
     { value: "all", label: "All Branches" },
@@ -26,6 +28,26 @@ const branchOptions = [
 
 export default function SectionsPage() {
     const [selectedBranch, setSelectedBranch] = useState("all")
+    const { subscriptionId } = useSelector((state: any) => state.auth)
+
+    const { data: sectionsResponse, isLoading, isError } = useGetAllSectionsAndClassesQuery(undefined)
+
+    const overviewData = sectionsResponse?.data?.overview
+
+    const sectionsData = (sectionsResponse?.data?.data || []).map((section: any) => ({
+        id: section.id,
+        grade: section.classLevel,
+        section: section.assignableSubject, 
+        classTeacher: section.teacher?.teacherName || "N/A",
+        capacity: section.capacity,
+        room: section.roomNumber,
+        status: section.status || "Active", 
+        enrolled: section.enrolled || 0,
+        time: section.time,
+        day: section.day
+    }))
+    
+    const totalSections = sectionsResponse?.data?.meta?.total || sectionsData.length
 
     return (
         <div className="space-y-6">
@@ -43,8 +65,17 @@ export default function SectionsPage() {
                     </SelectContent>
                 </Select>
             </div>
-            <SectionStats branchId={selectedBranch} />
-            <SectionsTable />
+            <SectionStats branchId={selectedBranch} overviewData={overviewData} />
+            
+            {isLoading ? (
+                <div className="py-10 text-center text-gray-500">Loading sections...</div>
+            ) : isError ? (
+                <div className="py-10 text-center text-red-500">
+                    <p>Failed to load sections</p>
+                </div>
+            ) : (
+                <SectionsTable sectionsData={sectionsData} totalSections={totalSections} />
+            )}
         </div>
     )
 }

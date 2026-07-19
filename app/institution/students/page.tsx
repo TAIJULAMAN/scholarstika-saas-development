@@ -4,7 +4,8 @@ import { useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { StudentStats } from "@/components/institution/student-management/student-stats"
 import { StudentsTable } from "@/components/institution/student-management/students-table"
-import { PageHeader } from "@/components/common/page-header"
+import { useGetAllStudentsQuery } from "@/redux/features/institutionAndBranch/student/student"
+import { useSelector } from "react-redux"
 
 const branchOptions = [
     { value: "all", label: "All Branches" },
@@ -27,25 +28,34 @@ const branchOptions = [
 
 export default function StudentsPage() {
     const [selectedBranch, setSelectedBranch] = useState("all")
+    const { subscriptionId } = useSelector((state: any) => state.auth)
+
+    const { data: studentsResponse, isLoading, isError, error } = useGetAllStudentsQuery(subscriptionId, { skip: !subscriptionId })
+
+    const fetchedStudents = (studentsResponse?.data?.data || []).map((student: any) => ({
+        id: student.id,
+        name: student.name,
+        email: student.email,
+        branch: student.branchName || "N/A",
+        grade: student.className || "N/A",
+        phone: student.guardianPhone || "N/A",
+        guardian: student.guardianName || "N/A",
+        avatar: student.photo
+    }))
+
+    const totalStudents = studentsResponse?.data?.meta?.total || fetchedStudents.length;
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-end">
-                <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select branch" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {branchOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-            <StudentStats branchId={selectedBranch} />
-            <StudentsTable />
+            {isLoading ? (
+                <div className="py-10 text-center text-gray-500">Loading students...</div>
+            ) : isError ? (
+                <div className="py-10 text-center text-red-500">
+                    <p>Failed to load students</p>
+                </div>
+            ) : (
+                <StudentsTable studentsData={fetchedStudents} totalStudents={totalStudents} />
+            )}
         </div>
     )
 }

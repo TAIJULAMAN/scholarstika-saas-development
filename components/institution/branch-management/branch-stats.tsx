@@ -1,15 +1,22 @@
 "use client"
 
 import { Users, GraduationCap, TrendingUp, DollarSign } from "lucide-react"
-import { useGetInstitutionBranchStatsQuery } from "@/redux/features/branchManagement/branchManagementApi"
 
 interface BranchStatsProps {
     branchId: string
+    payload?: any
+    isLoading?: boolean
 }
 
-export function BranchStats({ branchId }: BranchStatsProps) {
-    const { data: statsResponse, isLoading } = useGetInstitutionBranchStatsQuery(branchId)
-    const statsData = statsResponse?.data || statsResponse
+export function BranchStats({ branchId, payload, isLoading }: BranchStatsProps) {
+    let statsData: any = {};
+    if (branchId === "all") {
+        statsData = payload?.overall || {};
+    } else {
+        const branch = payload?.data?.find((b: any) => b.id === branchId);
+        statsData = branch?.statistics || {};
+    }
+
     const formatCurrency = (value: number) =>
         new Intl.NumberFormat("en-US", {
             style: "currency",
@@ -21,7 +28,7 @@ export function BranchStats({ branchId }: BranchStatsProps) {
         {
             icon: Users,
             label: branchId === "all" ? "Total Students" : "Students",
-            value: isLoading ? "..." : new Intl.NumberFormat("en-US").format(statsData?.totalStudents || 0),
+            value: isLoading ? "..." : new Intl.NumberFormat("en-US").format(statsData?.totalStudent ?? statsData?.totalStudents ?? 0),
             change: statsData?.studentChange || "+0%",
             color: "text-green-600",
             bgColor: "bg-green-50",
@@ -29,7 +36,7 @@ export function BranchStats({ branchId }: BranchStatsProps) {
         {
             icon: GraduationCap,
             label: branchId === "all" ? "Total Teachers" : "Teachers",
-            value: isLoading ? "..." : new Intl.NumberFormat("en-US").format(statsData?.totalTeachers || 0),
+            value: isLoading ? "..." : new Intl.NumberFormat("en-US").format(statsData?.totalTeacher ?? statsData?.totalTeachers ?? 0),
             change: statsData?.teacherChange || "+0%",
             color: "text-green-600",
             bgColor: "bg-green-50",

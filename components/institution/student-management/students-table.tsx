@@ -11,7 +11,7 @@ import { DeleteConfirmationDialog } from "./delete-confirmation-dialog"
 import { TablePagination } from "@/components/common/table-pagination"
 import { students, type Student } from "@/data/students"
 
-export function StudentsTable() {
+export function StudentsTable({ studentsData, totalStudents }: { studentsData?: Student[], totalStudents?: number }) {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
@@ -21,22 +21,31 @@ export function StudentsTable() {
     const [branchFilter, setBranchFilter] = useState("all")
     const [gradeFilter, setGradeFilter] = useState("all")
 
-    // Filter students based on branch and grade
+    const uniqueBranches = useMemo(() => {
+        const sourceData = studentsData || students;
+        return Array.from(new Set(sourceData.map(s => s.branch))).filter(Boolean);
+    }, [studentsData]);
+
+    const uniqueGrades = useMemo(() => {
+        const sourceData = studentsData || students;
+        return Array.from(new Set(sourceData.map(s => s.grade))).filter(Boolean);
+    }, [studentsData]);
+
     const filteredStudents = useMemo(() => {
-        return students.filter(student => {
+        const sourceData = studentsData || students;
+        return sourceData.filter(student => {
             const matchesBranch = branchFilter === "all" || student.branch === branchFilter
             const matchesGrade = gradeFilter === "all" || student.grade === gradeFilter
             return matchesBranch && matchesGrade
         })
-    }, [branchFilter, gradeFilter])
+    }, [branchFilter, gradeFilter, studentsData])
 
-    const itemsPerPage = 8
+    const itemsPerPage = 8;
     const totalPages = Math.ceil(filteredStudents.length / itemsPerPage)
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
     const currentStudents = filteredStudents.slice(startIndex, endIndex)
 
-    // Reset to page 1 when filters change
     useEffect(() => {
         setCurrentPage(1)
     }, [branchFilter, gradeFilter])
@@ -46,20 +55,10 @@ export function StudentsTable() {
         setIsViewDialogOpen(true)
     }
 
-    const handleEdit = (student: Student) => {
-        setSelectedStudent(student)
-        setIsEditDialogOpen(true)
-    }
-
-    const handleDelete = (student: Student) => {
-        setSelectedStudent(student)
-        setIsDeleteDialogOpen(true)
-    }
-
     return (
-        <div className="rounded-xl bg-white py-4 shadow-sm sm:py-6">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-4 px-4 sm:px-6">
-                <h2 className="text-lg font-semibold text-gray-900">Students Directory</h2>
+        <>
+            <div className="mb-5 bg-white shadow-md flex flex-wrap items-center justify-between gap-4 px-4 sm:px-6 py-5 rounded-lg">
+                <h2 className="text-lg font-semibold text-gray-900">Students Directory({totalStudents !== undefined ? totalStudents : filteredStudents.length})</h2>
                 <div className="flex flex-wrap items-center gap-3">
                     <Select value={branchFilter} onValueChange={setBranchFilter}>
                         <SelectTrigger className="w-40">
@@ -67,9 +66,9 @@ export function StudentsTable() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Branches</SelectItem>
-                            <SelectItem value="Main Campus">Main Campus</SelectItem>
-                            <SelectItem value="North Branch">North Branch</SelectItem>
-                            <SelectItem value="South Branch">South Branch</SelectItem>
+                            {uniqueBranches.map(branch => (
+                                <SelectItem key={branch} value={branch}>{branch}</SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
 
@@ -79,17 +78,15 @@ export function StudentsTable() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Grades</SelectItem>
-                            <SelectItem value="Grade 8">Grade 8</SelectItem>
-                            <SelectItem value="Grade 9">Grade 9</SelectItem>
-                            <SelectItem value="Grade 10">Grade 10</SelectItem>
-                            <SelectItem value="Grade 11">Grade 11</SelectItem>
-                            <SelectItem value="Grade 12">Grade 12</SelectItem>
+                            {uniqueGrades.map(grade => (
+                                <SelectItem key={grade} value={grade}>{grade}</SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                 </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto bg-white rounded-lg shadow-md">
                 <table className="w-full">
                     <thead style={{ backgroundColor: 'rgba(16, 185, 129, 0.8)' }} className="rounded-t-lg">
                         <tr>
@@ -171,6 +168,6 @@ export function StudentsTable() {
                     />
                 </>
             )}
-        </div>
+        </>
     )
 }

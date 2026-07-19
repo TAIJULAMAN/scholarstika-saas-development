@@ -42,6 +42,9 @@ export function EditManagerDialog({
         subscriptionId: manager.subscriptionId || "",
     })
 
+    const initialBranch = branchOptions.find((b: any) => (b.schoolName || b.name) === manager.assignBranch)
+    const [selectedBranchId, setSelectedBranchId] = useState<string>(initialBranch?.id || initialBranch?.subscriptionId || "")
+
     useEffect(() => {
         setFormData({
             fullName: manager.fullName,
@@ -51,12 +54,14 @@ export function EditManagerDialog({
             joinDate: manager.joinDate ? manager.joinDate.slice(0, 10) : "",
             subscriptionId: manager.subscriptionId || "",
         })
-    }, [manager])
+        const branch = branchOptions.find((b: any) => (b.schoolName || b.name) === manager.assignBranch)
+        setSelectedBranchId(branch?.id || branch?.subscriptionId || "")
+    }, [manager, branchOptions])
 
     const availableBranches = useMemo(
         () =>
             branchOptions.filter(
-                (branch) => !branch.hasAssignedAdmin || branch.name === manager.assignBranch,
+                (branch: any) => !branch.hasAssignedAdmin || (branch.schoolName || branch.name) === manager.assignBranch,
             ),
         [branchOptions, manager.assignBranch],
     )
@@ -115,13 +120,14 @@ export function EditManagerDialog({
                         <div className="space-y-2">
                             <Label htmlFor="branch">Assign Branch *</Label>
                             <Select
-                                value={formData.assignBranch}
+                                value={selectedBranchId}
                                 onValueChange={(value) => {
-                                    const selectedBranch = branchOptions.find((branch) => branch.name === value)
+                                    setSelectedBranchId(value)
+                                    const selectedBranch = branchOptions.find((branch: any) => branch.id === value || branch.subscriptionId === value)
                                     setFormData({
                                         ...formData,
-                                        assignBranch: value,
-                                        subscriptionId: selectedBranch?.subscriptionId || "",
+                                        assignBranch: selectedBranch?.schoolName || selectedBranch?.name || "",
+                                        subscriptionId: selectedBranch?.subscriptionId || selectedBranch?.id || "",
                                     })
                                 }}
                             >
@@ -129,11 +135,15 @@ export function EditManagerDialog({
                                     <SelectValue placeholder="Select a branch" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {availableBranches.map((branch) => (
-                                        <SelectItem key={branch.id} value={branch.name}>
-                                            {branch.name}
-                                        </SelectItem>
-                                    ))}
+                                    {availableBranches.map((branch: any, index) => {
+                                        const branchName = branch.schoolName || branch.name || `Unnamed Branch ${index}`;
+                                        const uniqueValue = branch.id || branch.subscriptionId || `branch-${index}`;
+                                        return (
+                                            <SelectItem key={uniqueValue} value={uniqueValue}>
+                                                {branchName}
+                                            </SelectItem>
+                                        )
+                                    })}
                                 </SelectContent>
                             </Select>
                         </div>

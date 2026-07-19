@@ -1,42 +1,41 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { Eye, Pencil, Plus, Trash2 } from "lucide-react"
+import { Eye } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { AddTeacherDialog } from "./add-teacher-dialog"
-import { EditTeacherDialog } from "./edit-teacher-dialog"
 import { ViewTeacherDialog } from "./view-teacher-dialog"
-import { DeleteConfirmationDialog } from "./delete-confirmation-dialog"
 import { TablePagination } from "@/components/common/table-pagination"
 import { teachers, type Teacher } from "@/data/teachers"
 
-export function TeachersTable() {
-    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+export function TeachersTable({ teachersData, totalTeachers }: { teachersData?: Teacher[], totalTeachers?: number }) {
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null)
     const [currentPage, setCurrentPage] = useState(1)
     const [branchFilter, setBranchFilter] = useState("all")
     const [subjectFilter, setSubjectFilter] = useState("all")
-
-    // Filter teachers based on branch and subject
+    const uniqueBranches = useMemo(() => {
+        const sourceData = teachersData || teachers;
+        return Array.from(new Set(sourceData.map(t => t.branch))).filter(Boolean);
+    }, [teachersData]);
+    const uniqueSubjects = useMemo(() => {
+        const sourceData = teachersData || teachers;
+        return Array.from(new Set(sourceData.map(t => t.subject))).filter(Boolean);
+    }, [teachersData]);
     const filteredTeachers = useMemo(() => {
-        return teachers.filter(teacher => {
+        const sourceData = teachersData || teachers;
+        return sourceData.filter(teacher => {
             const matchesBranch = branchFilter === "all" || teacher.branch === branchFilter
             const matchesSubject = subjectFilter === "all" || teacher.subject === subjectFilter
             return matchesBranch && matchesSubject
         })
-    }, [branchFilter, subjectFilter])
-
+    }, [branchFilter, subjectFilter, teachersData])
     const itemsPerPage = 8
     const totalPages = Math.ceil(filteredTeachers.length / itemsPerPage)
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
     const currentTeachers = filteredTeachers.slice(startIndex, endIndex)
 
-    // Reset to page 1 when filters change
     useEffect(() => {
         setCurrentPage(1)
     }, [branchFilter, subjectFilter])
@@ -46,20 +45,10 @@ export function TeachersTable() {
         setIsViewDialogOpen(true)
     }
 
-    const handleEdit = (teacher: Teacher) => {
-        setSelectedTeacher(teacher)
-        setIsEditDialogOpen(true)
-    }
-
-    const handleDelete = (teacher: Teacher) => {
-        setSelectedTeacher(teacher)
-        setIsDeleteDialogOpen(true)
-    }
-
     return (
-        <div className="rounded-xl bg-white py-4 shadow-sm sm:py-6">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-4 px-4 sm:px-6">
-                <h2 className="text-lg font-semibold text-gray-900">Teachers Directory</h2>
+        <>
+            <div className="mb-5 rounded-xl bg-white shadow-sm flex flex-wrap items-center justify-between gap-4 px-4 py-5">
+                <h2 className="text-lg font-semibold text-gray-900">Teachers Directory({totalTeachers !== undefined ? totalTeachers : (teachersData || teachers).length})</h2>
                 <div className="flex flex-wrap items-center gap-3">
                     <Select value={branchFilter} onValueChange={setBranchFilter}>
                         <SelectTrigger className="w-40">
@@ -67,9 +56,9 @@ export function TeachersTable() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Branches</SelectItem>
-                            <SelectItem value="Main Campus">Main Campus</SelectItem>
-                            <SelectItem value="North Branch">North Branch</SelectItem>
-                            <SelectItem value="South Branch">South Branch</SelectItem>
+                            {uniqueBranches.map(branch => (
+                                <SelectItem key={branch} value={branch}>{branch}</SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
 
@@ -79,38 +68,14 @@ export function TeachersTable() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Subjects</SelectItem>
-                            <SelectItem value="Mathematics">Mathematics</SelectItem>
-                            <SelectItem value="Science">Science</SelectItem>
-                            <SelectItem value="English">English</SelectItem>
-                            <SelectItem value="History">History</SelectItem>
-                            <SelectItem value="Chemistry">Chemistry</SelectItem>
-                            <SelectItem value="Biology">Biology</SelectItem>
-                            <SelectItem value="Physics">Physics</SelectItem>
-                            <SelectItem value="Music">Music</SelectItem>
-                            <SelectItem value="Computer Science">Computer Science</SelectItem>
-                            <SelectItem value="Geography">Geography</SelectItem>
-                            <SelectItem value="Spanish">Spanish</SelectItem>
-                            <SelectItem value="Economics">Economics</SelectItem>
-                            <SelectItem value="Psychology">Psychology</SelectItem>
-                            <SelectItem value="French">French</SelectItem>
-                            <SelectItem value="Drama">Drama</SelectItem>
-                            <SelectItem value="Art">Art</SelectItem>
-                            <SelectItem value="Physical Education">Physical Education</SelectItem>
+                            {uniqueSubjects.map(subject => (
+                                <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
-
-                    {/* <button
-                        onClick={() => setIsAddDialogOpen(true)}
-                        style={{ backgroundColor: 'rgba(16, 185, 129, 0.8)' }}
-                        className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white"
-                    >
-                        <Plus className="h-4 w-4" />
-                        Add New Teacher
-                    </button> */}
                 </div>
             </div>
-
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl bg-white shadow-sm">
                 <table className="w-full">
                     <thead style={{ backgroundColor: 'rgba(16, 185, 129, 0.8)' }} className="rounded-t-lg">
                         <tr>
@@ -185,27 +150,15 @@ export function TeachersTable() {
                 itemLabel="teachers"
             />
 
-            {/* Dialogs */}
-            <AddTeacherDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} />
             {selectedTeacher && (
                 <>
-                    <EditTeacherDialog
-                        open={isEditDialogOpen}
-                        onOpenChange={setIsEditDialogOpen}
-                        teacher={selectedTeacher}
-                    />
                     <ViewTeacherDialog
                         open={isViewDialogOpen}
                         onOpenChange={setIsViewDialogOpen}
                         teacher={selectedTeacher}
                     />
-                    <DeleteConfirmationDialog
-                        open={isDeleteDialogOpen}
-                        onOpenChange={setIsDeleteDialogOpen}
-                        teacherName={selectedTeacher.name}
-                    />
                 </>
             )}
-        </div>
+        </>
     )
 }

@@ -11,7 +11,6 @@ import { TablePagination } from "@/components/common/table-pagination"
 import { InstitutionBranch } from "@/types/institution-branch"
 import {
     useDeleteInstitutionBranchMutation,
-    useGetInstitutionBranchesQuery,
     useOverrideInstitutionBranchPriceMutation,
     useUpdateInstitutionBranchMutation,
 } from "@/redux/features/branchManagement/branchManagementApi"
@@ -19,9 +18,11 @@ import { toast } from "sonner"
 
 interface BranchesTableProps {
     branchId: string
+    payload?: any
+    isLoading?: boolean
 }
 
-export function BranchesTable({ branchId }: BranchesTableProps) {
+export function BranchesTable({ branchId, payload, isLoading: externalIsLoading }: BranchesTableProps) {
     const router = useRouter()
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
@@ -34,16 +35,19 @@ export function BranchesTable({ branchId }: BranchesTableProps) {
     const [overridePrice] = useOverrideInstitutionBranchPriceMutation()
 
     const itemsPerPage = 8
-    const { data: branchesResponse, isLoading } = useGetInstitutionBranchesQuery({
-        branchId,
-        page: currentPage,
-        limit: itemsPerPage,
-    })
-    const branchesPayload = branchesResponse?.data || branchesResponse
-    const currentBranches = branchesPayload?.data || []
-    const meta = branchesPayload?.meta
-    const totalPages = Math.max(meta?.totalPage || 1, 1)
-    const totalItems = meta?.total || 0
+
+    const allBranches = payload?.data || []
+    const filteredBranches = branchId === "all" 
+        ? allBranches 
+        : allBranches.filter((b: any) => b.id === branchId)
+
+    const totalItems = filteredBranches.length
+    const totalPages = Math.max(Math.ceil(totalItems / itemsPerPage), 1)
+    
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const currentBranches = filteredBranches.slice(startIndex, startIndex + itemsPerPage)
+
+    const isLoading = externalIsLoading
 
     const handleView = (branch: InstitutionBranch) => {
         setSelectedBranch(branch)
@@ -60,10 +64,6 @@ export function BranchesTable({ branchId }: BranchesTableProps) {
         setIsDeleteDialogOpen(true)
     }
 
-    const handlePriceOverride = (branch: InstitutionBranch) => {
-        setSelectedBranch(branch)
-        setIsPriceOverrideOpen(true)
-    }
 
     const handleUpdateBranch = async (data: {
         id: string
@@ -150,14 +150,17 @@ export function BranchesTable({ branchId }: BranchesTableProps) {
                         {currentBranches.map((branch: any) => (
                             <tr key={branch.id} className="border-b border-gray-100 transition-colors hover:bg-gray-50">
                                 <td className="whitespace-nowrap py-6 pl-6">
-                                    <p className="font-medium text-gray-900">{branch.name}</p>
+                                    <p className="font-medium text-gray-900">{branch.schoolName || branch.name}</p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        {[branch.city, branch.state, branch.country].filter(Boolean).join(", ") || branch.location || "No address"}
+                                    </p>
                                 </td>
-                                <td className="whitespace-nowrap py-6 text-sm text-gray-600">{branch.type}</td>
+                                <td className="whitespace-nowrap py-6 text-sm text-gray-600">{branch.schoolType || branch.type}</td>
                                 <td className="whitespace-nowrap py-6">
-                                    <span className="font-semibold text-gray-900">{new Intl.NumberFormat("en-US").format(branch.students)}</span>
+                                    <span className="font-semibold text-gray-900">{new Intl.NumberFormat("en-US").format(branch.statistics?.totalStudent ?? branch.students ?? "N/A")}</span>
                                 </td>
                                 <td className="whitespace-nowrap py-6">
-                                    <span className="text-gray-600">{new Intl.NumberFormat("en-US").format(branch.teachers)}</span>
+                                    <span className="text-gray-600">{new Intl.NumberFormat("en-US").format(branch.statistics?.totalTeacher ?? branch.teachers ?? "N/A")}</span>
                                 </td>
                                 <td className="whitespace-nowrap py-6">
                                     <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${branch.attendance >= 93
@@ -166,7 +169,7 @@ export function BranchesTable({ branchId }: BranchesTableProps) {
                                             ? 'bg-yellow-100 text-yellow-700'
                                             : 'bg-red-100 text-red-700'
                                         }`}>
-                                        {branch.attendance}%
+                                        {branch.statistics?.averageAttendance ?? branch.attendance ?? "N/A"}%
                                     </span>
                                 </td>
                                 <td className="whitespace-nowrap py-6">
@@ -175,7 +178,7 @@ export function BranchesTable({ branchId }: BranchesTableProps) {
                                             style: "currency",
                                             currency: "USD",
                                             maximumFractionDigits: 0,
-                                        }).format(branch.earnings)}
+                                        }).format(branch.statistics?.paidFees ?? branch.earnings ?? "N/A")}
                                     </span>
                                 </td>
                                 <td className="whitespace-nowrap py-6">

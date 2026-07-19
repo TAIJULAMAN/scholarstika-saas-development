@@ -173,11 +173,14 @@ export function AddStudentDialog({
                             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-700 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         >
                             <option value="">Select branch</option>
-                            {branchOptionsWithFallback.map((branch) => (
-                                <option key={branch.id} value={branch.name}>
-                                    {branch.name}
-                                </option>
-                            ))}
+                            {branchOptionsWithFallback.map((branch: any, index: number) => {
+                                const branchName = branch.schoolName || branch.name || `Unnamed Branch ${index}`;
+                                return (
+                                    <option key={branch.id || `branch-${index}`} value={branchName}>
+                                        {branchName}
+                                    </option>
+                                )
+                            })}
                         </select>
                     </div>
 
