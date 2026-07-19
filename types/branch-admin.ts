@@ -25,7 +25,9 @@ export interface BranchAdminFormData {
 
 export interface BranchOption {
   id: string
-  name: string
+  name?: string
+  branchName?: string
+  schoolName?: string
   subscriptionId?: string | null
   hasAssignedAdmin?: boolean
   assignedAdminId?: string | null
