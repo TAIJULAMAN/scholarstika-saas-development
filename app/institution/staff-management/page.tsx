@@ -52,7 +52,7 @@ export default function StaffManagementPage() {
         () =>
             new Map(
                 branchOptions.map((branch: any) => [
-                    branch.schoolName || branch.name,
+                    branch.schoolName || branch.name || branch.branchName,
                     branch.id.slice(0, 8).toUpperCase(),
                 ]),
             ),
@@ -84,7 +84,10 @@ export default function StaffManagementPage() {
             setIsAddDialogOpen(false)
             return null
         } catch (error: any) {
-            const message = error?.data?.message || "Failed to create branch admin"
+            const message =
+                error?.data?.errorMessages?.[0]?.message ||
+                error?.data?.message ||
+                "Failed to create branch admin"
             toast.error(message)
             return message
         }
